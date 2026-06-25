@@ -138,17 +138,41 @@ bot.catch((err) => {
   console.error('Bot error:', err);
 });
 
-async function main() {
-  const me = await bot.api.getMe();
-  console.log(`Fuel Map Telegram bot @${me.username} (id ${me.id}) starting…`);
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
+async function withRetry<T>(
+  label: string,
+  fn: () => Promise<T>,
+  attempts = 6
+): Promise<T> {
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i === attempts) throw err;
+      const delay = Math.min(30_000, 3000 * i);
+      console.warn(`${label} failed (attempt ${i}/${attempts}), retry in ${delay / 1000}s…`);
+      await sleep(delay);
+    }
+  }
+  throw new Error(`${label}: retries exhausted`);
+}
+
+async function main() {
   const apiUrl = process.env.API_URL || 'http://localhost:3001/api';
   console.log(`API_URL=${apiUrl}`);
   console.log(`WEB_APP_URL=${WEB_APP_URL}`);
 
-  await bot.start({
-    onStart: () => console.log('Bot is polling for updates'),
-  });
+  const me = await withRetry('getMe', () => bot.api.getMe());
+  console.log(`Fuel Map Telegram bot @${me.username} (id ${me.id}) starting…`);
+
+  await withRetry('bot.start', () =>
+    bot.start({
+      onStart: () => console.log('Bot is polling for updates'),
+    })
+  );
 }
 
 main().catch((err) => {

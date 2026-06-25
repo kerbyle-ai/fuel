@@ -1,0 +1,95 @@
+﻿#cloud-config
+# Timeweb Cloud user-data — ПОЛНАЯ переустановка Ubuntu 24.04 (kvmnvm-939 / fuel-map)
+# Применение: создать новый VPS или «Переустановить ОС» → Ubuntu 24.04 → вставить этот YAML в Cloud-init / User data
+# После первой загрузки: /var/log/fuel-map-cloud-init.log и /opt/fuel-map/
+
+hostname: fuel-map-prod
+preserve_hostname: false
+timezone: Europe/Moscow
+
+package_update: true
+package_upgrade: false
+
+packages:
+  - curl
+  - wget
+  - ca-certificates
+  - gnupg
+  - git
+  - openssh-server
+  - ufw
+  - fail2ban
+
+# Пароль root задайте в панели Timeweb при переустановке ИЛИ раскомментируйте chpasswd ниже
+ssh_pwauth: true
+disable_root: false
+
+ssh_authorized_keys:
+  - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILBnXTv4AMiU5tLXKs8uyOKRRL4uznu5miO+AkePppsr user@SAP-WS01
+
+write_files:
+  - path: /var/log/fuel-map-cloud-init.log
+    permissions: "0644"
+    content: |
+      fuel-map cloud-init-full started
+
+  - path: /opt/fuel-map/.env.production.placeholder
+    permissions: "0600"
+    content: |
+      # Скопируйте deploy/.env.production.example с рабочей машины после первого SSH
+      # DATABASE_URL=
+      # TELEGRAM_BOT_TOKEN=
+      # NODE_ENV=production
+
+  - path: /opt/fuel-map/README-DEPLOY.txt
+    permissions: "0644"
+    content: |
+      1) ssh root@147.45.175.194
+      2) git clone <YOUR_REPO_URL> /opt/fuel-map/app   # или rsync/scp из deploy/
+      3) cp .env.production.placeholder /opt/fuel-map/app/.env
+      4) cd /opt/fuel-map/app && docker compose -f deploy/docker-compose.prod.yml up -d --build
+      5) curl -sI http://127.0.0.1:8090/
+
+# chpasswd:
+#   - { name: root, password: "CHANGE_ME_STRONG", type: text }
+
+runcmd:
+  - echo "=== fuel-map cloud-init-full $(date -Is) ===" >> /var/log/fuel-map-cloud-init.log
+
+  # Serial-консоль Timeweb (для поддержки и аварийного доступа)
+  - wget -qO- https://st.timeweb.com/cloud-static/scripts/serial_enable.sh | bash >> /var/log/fuel-map-cloud-init.log 2>&1 || true
+
+  # Docker
+  - curl -fsSL https://get.docker.com | sh >> /var/log/fuel-map-cloud-init.log 2>&1
+  - systemctl enable --now docker
+  - usermod -aG docker root || true
+
+  # Каталоги приложения
+  - mkdir -p /opt/fuel-map/app
+  - touch /opt/fuel-map/.cloud-init-placeholder
+
+  # SSH
+  - systemctl enable ssh
+  - sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config || true
+  - sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config || true
+  - systemctl restart ssh
+
+  # Firewall: SSH + web + fuel-map
+  - ufw --force disable
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow 22/tcp comment SSH
+  - ufw allow 80/tcp comment HTTP
+  - ufw allow 443/tcp comment HTTPS
+  - ufw allow 8090/tcp comment fuel-map
+  - ufw --force enable
+
+  # fail2ban базово для sshd
+  - systemctl enable --now fail2ban || true
+
+  - echo "DONE $(date -Is)" >> /var/log/fuel-map-cloud-init.log
+
+final_message: |
+  fuel-map cloud-init-full finished.
+  Log: /var/log/fuel-map-cloud-init.log
+  Next: SSH as root, deploy app to /opt/fuel-map/app

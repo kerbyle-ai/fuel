@@ -3,9 +3,17 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadChannelPost } from './lib/telegram-post.mjs';
 
+const FETCH_TIMEOUT_MS = 60_000;
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..');
 const CHANNEL = '@toplivo99';
+
+function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
 
 function loadEnv() {
   const envPath = resolve(root, '.env');
@@ -35,7 +43,7 @@ function saveEnvChannelId(envPath, content, channelId) {
 }
 
 async function tgJson(token, method, body) {
-  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+  const res = await fetchWithTimeout(`https://api.telegram.org/bot${token}/${method}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -51,7 +59,7 @@ async function setChatPhoto(token, chatId, photoPath) {
   const bytes = readFileSync(photoPath);
   form.append('photo', new Blob([bytes], { type: 'image/png' }), 'icon-512.png');
 
-  const res = await fetch(`https://api.telegram.org/bot${token}/setChatPhoto`, {
+  const res = await fetchWithTimeout(`https://api.telegram.org/bot${token}/setChatPhoto`, {
     method: 'POST',
     body: form,
   });
