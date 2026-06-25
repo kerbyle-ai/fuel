@@ -1,0 +1,25 @@
+node_modules
+dist
+.env
+*.log
+.DS_Store
+Thumbs.db
+pgdata
+.git
+*.md
+!README.md
+
+# Frontend build artifacts
+frontend/dist
+frontend/node_modules
+
+# Backend
+backend/node_modules
+backend/dist
+
+# Scripts
+scripts/node_modules
+
+# IDE
+.idea
+.vscode

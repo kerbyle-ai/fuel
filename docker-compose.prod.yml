@@ -1,0 +1,21 @@
+# Production override для VPS (Timeweb и др.)
+# Запуск: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Безопасность:
+# - PostgreSQL НЕ проброшен на хост (только внутри docker network)
+# - API НЕ проброшен на хост (доступ через nginx внутри compose)
+# - nginx слушает 0.0.0.0:8090 — публичный доступ по IP:8090 (или host nginx на 80/443)
+
+services:
+  db:
+    ports: !reset []
+
+  api:
+    ports: !reset []
+    environment:
+      NODE_ENV: production
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://your-domain.ru}
+
+  nginx:
+    ports:
+      - "0.0.0.0:${NGINX_PORT:-8090}:80"

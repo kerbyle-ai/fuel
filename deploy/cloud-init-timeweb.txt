@@ -1,0 +1,49 @@
+#cloud-config
+# Timeweb Cloud user-data for fuel-map — paste into panel Cloud-init editor.
+# First line MUST be #cloud-config (Timeweb requirement).
+# After bootstrap: upload full fuel-map code via SSH or manual step.
+
+hostname: fuel-map-prod
+preserve_hostname: false
+
+package_update: true
+package_upgrade: false
+
+packages:
+  - curl
+  - ca-certificates
+  - gnupg
+  - openssh-server
+  - ufw
+
+ssh_pwauth: true
+disable_root: false
+
+ssh_authorized_keys:
+  - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILBnXTv4AMiU5tLXKs8uyOKRRL4uznu5miO+AkePppsr user@SAP-WS01
+
+write_files:
+  - path: /var/log/fuel-map-cloud-init.log
+    permissions: '0644'
+    content: |
+      fuel-map cloud-init started
+
+runcmd:
+  - echo "=== fuel-map cloud-init $(date -Is) ===" >> /var/log/fuel-map-cloud-init.log
+  - wget -qO- https://st.timeweb.com/cloud-static/scripts/serial_enable.sh | bash >> /var/log/fuel-map-cloud-init.log 2>&1 || true
+  - curl -fsSL https://get.docker.com | sh >> /var/log/fuel-map-cloud-init.log 2>&1
+  - systemctl enable --now docker
+  - mkdir -p /opt/fuel-map
+  - ufw --force disable
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow 22/tcp comment SSH
+  - ufw allow 8090/tcp comment fuel-map
+  - ufw --force enable
+  - systemctl enable ssh
+  - systemctl restart ssh
+  - touch /opt/fuel-map/.cloud-init-placeholder
+  - echo "NOTE full fuel-map code upload still needs SSH or manual step" >> /var/log/fuel-map-cloud-init.log
+  - echo "DONE $(date -Is)" >> /var/log/fuel-map-cloud-init.log
+
+final_message: "fuel-map cloud-init finished. Upload code to /opt/fuel-map via SSH. Log: /var/log/fuel-map-cloud-init.log"

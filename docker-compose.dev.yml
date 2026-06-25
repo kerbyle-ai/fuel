@@ -1,0 +1,15 @@
+# Локальная разработка: только PostgreSQL в Docker
+# Использование: docker compose -f docker-compose.yml -f docker-compose.dev.yml up db
+
+services:
+  db:
+    ports:
+      - "5432:5432"
+
+  api:
+    profiles:
+      - full
+
+  nginx:
+    profiles:
+      - full

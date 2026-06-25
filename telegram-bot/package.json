@@ -1,0 +1,20 @@
+{
+  "name": "fuel-map-telegram-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/bot.ts",
+    "start": "node dist/bot.js",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "grammy": "^1.35.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

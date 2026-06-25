@@ -1,0 +1,5 @@
+# Pending posts
+
+Sibling agents save drafts here as `YYYY-MM-DD-{agent}-{slug}.md`.
+
+Coordinator reviews, dedupes, and sets `status: approved | rejected` in frontmatter.
