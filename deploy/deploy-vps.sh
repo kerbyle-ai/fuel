@@ -37,7 +37,8 @@ fi
 
 if [[ ! -f .env ]]; then
   cp deploy/.env.production.example .env
-  sed -i 's|ALLOWED_ORIGINS=.*|ALLOWED_ORIGINS=http://147.45.175.194:8090|' .env
+  sed -i 's|ALLOWED_ORIGINS=.*|ALLOWED_ORIGINS=http://147.45.175.194,http://147.45.175.194:8090|' .env
+  sed -i 's|WEB_APP_URL=.*|WEB_APP_URL=http://147.45.175.194|' .env
   sed -i 's|POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD='"$(openssl rand -base64 24)"'|' .env
 fi
 
@@ -55,8 +56,10 @@ if [[ -f /tmp/fuelmap-backup.sql.gz ]]; then
   fi
 fi
 
-curl -sf http://127.0.0.1:8090/api/health && echo " OK"
+curl -sf http://127.0.0.1/api/health && echo " OK :80"
+curl -sf http://127.0.0.1:8090/api/health && echo " OK :8090"
 REMOTE
 
 echo "==> External check..."
-curl -sf --connect-timeout 15 "http://147.45.175.194:8090/api/health" && echo " Public OK"
+curl -sf --connect-timeout 15 "http://147.45.175.194/api/health" && echo " Public OK :80"
+curl -sf --connect-timeout 15 "http://147.45.175.194:8090/api/health" && echo " Public OK :8090"

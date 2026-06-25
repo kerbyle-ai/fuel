@@ -1,5 +1,7 @@
 ﻿# Fuel Map - VNC deploy (Timeweb)
 
+> **2026-06-26 (port 80):** Если с ПК не открывается `:8090` (ISP/Timeweb), пробросьте **порт 80** — см. `deploy/vnc-port80-fix.sh` или блок ниже. Публичный URL: **http://147.45.175.194/**
+
 > **2026-06-26:** Catbox `wget` often fails on this VPS (0 bytes / SSL). Prefer **GitHub**: see `deploy/VNC-10MIN-PATH.md` (fast) or `deploy/VNC-GITHUB-DEPLOY.md` (full). Fallback: `deploy/VNC-PASTE-CHUNKS.md` (74 VNC pastes).
 # Fuel Map — VNC deploy (Timeweb)
 
@@ -101,7 +103,37 @@ echo "Open: http://147.45.175.194:8090"
 
 ---
 
-## Manual upload fallback (Timeweb file manager)
+## Port 80 fix (без git pull)
+
+Если стек уже запущен, но с браузера не открывается `:8090`:
+
+```bash
+cd /opt/fuel-map && bash deploy/vnc-port80-fix.sh
+```
+
+Или одной вставкой (если скрипта ещё нет на сервере):
+
+```bash
+cd /opt/fuel-map && python3 - <<'PY'
+from pathlib import Path
+p = Path("docker-compose.prod.yml")
+t = p.read_text()
+n = '    ports:\n      - "0.0.0.0:${NGINX_PORT:-8090}:80"'
+i = '    ports:\n      - "0.0.0.0:80:80"\n      - "0.0.0.0:${NGINX_PORT:-8090}:80"'
+if "0.0.0.0:80:80" not in t: p.write_text(t.replace(n, i))
+PY
+grep -q '^ALLOWED_ORIGINS=' .env && sed -i 's|^ALLOWED_ORIGINS=.*|ALLOWED_ORIGINS=http://147.45.175.194,http://147.45.175.194:8090|' .env || echo 'ALLOWED_ORIGINS=http://147.45.175.194,http://147.45.175.194:8090' >> .env
+grep -q '^WEB_APP_URL=' .env && sed -i 's|^WEB_APP_URL=.*|WEB_APP_URL=http://147.45.175.194|' .env || echo 'WEB_APP_URL=http://147.45.175.194' >> .env
+ufw allow 80/tcp 2>/dev/null; ufw reload 2>/dev/null
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d nginx api
+systemctl restart fuel-map-bot 2>/dev/null || true
+curl -sf http://127.0.0.1/api/health && echo " OK"
+echo "Open: http://147.45.175.194/"
+```
+
+Проверьте **Timeweb Cloud Firewall**: Inbound **TCP 80** → `0.0.0.0/0`.
+
+---
 
 If `wget` fails from the server:
 

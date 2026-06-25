@@ -56,11 +56,16 @@ else
   if [ ! -f .env ]; then
     cp deploy/.env.production.example .env
     sed -i "s|POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(openssl rand -base64 24)|" .env
-    sed -i 's|ALLOWED_ORIGINS=.*|ALLOWED_ORIGINS=http://147.45.175.194:8090|' .env || true
+    sed -i 's|ALLOWED_ORIGINS=.*|ALLOWED_ORIGINS=http://147.45.175.194,http://147.45.175.194:8090|' .env || true
+    sed -i 's|WEB_APP_URL=.*|WEB_APP_URL=http://147.45.175.194|' .env || true
   fi
   docker compose -f docker-compose.yml -f docker-compose.prod.yml down 2>/dev/null || true
   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
   for i in $(seq 1 60); do
+    if curl -sf --max-time 5 http://127.0.0.1/api/health >/dev/null; then
+      curl -sS http://127.0.0.1/api/health
+      break
+    fi
     if curl -sf --max-time 5 http://127.0.0.1:8090/api/health >/dev/null; then
       curl -sS http://127.0.0.1:8090/api/health
       break
