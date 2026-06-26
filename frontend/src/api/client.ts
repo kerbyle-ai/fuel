@@ -192,7 +192,11 @@ function deriveMarkerStatus(fuels: FuelStatus[], filterCodes?: FuelCode[]): {
 
 
 
-  if (relevant.length === 0) {
+  const reported = relevant.filter((f) => f.reported_at != null);
+
+
+
+  if (reported.length === 0) {
 
     return { status: 'unknown', is_stale: true };
 
@@ -200,27 +204,25 @@ function deriveMarkerStatus(fuels: FuelStatus[], filterCodes?: FuelCode[]): {
 
 
 
-  const priority: Record<ReportStatus, number> = {
+  const hasAvailable = reported.some((f) => f.status === 'available');
 
-    unavailable: 0,
-
-    unknown: 1,
-
-    available: 2,
-
-  };
+  const hasUnavailable = reported.some((f) => f.status === 'unavailable');
 
 
 
-  let best = relevant[0];
+  let status: ReportStatus;
 
-  for (const f of relevant) {
+  if (hasAvailable) {
 
-    const fStatus = f.status ?? 'unknown';
+    status = 'available';
 
-    const bStatus = best.status ?? 'unknown';
+  } else if (hasUnavailable) {
 
-    if (priority[fStatus] < priority[bStatus]) best = f;
+    status = 'unavailable';
+
+  } else {
+
+    status = 'unknown';
 
   }
 
@@ -228,9 +230,9 @@ function deriveMarkerStatus(fuels: FuelStatus[], filterCodes?: FuelCode[]): {
 
   return {
 
-    status: best.status ?? 'unknown',
+    status,
 
-    is_stale: relevant.every((f) => f.is_stale),
+    is_stale: reported.every((f) => f.is_stale),
 
   };
 
