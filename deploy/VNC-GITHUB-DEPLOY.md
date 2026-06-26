@@ -122,7 +122,30 @@ systemctl status fuel-map-bot --no-pager
 
 ---
 
-## 4. Updates
+## 4. Updates (code + prices)
+
+**Windows** — push code and price data:
+
+```powershell
+cd C:\Users\user\.cursor\fuel-map
+$env:DATABASE_URL = "postgresql://fuelmap:fuelmap_secret@localhost:5432/fuelmap"
+cd scripts; npm run export:reports; cd ..
+git add deploy/reports-seed.sql.gz deploy/vnc-github-update.sh scripts/
+git commit -m "deploy: price reports seed + benzin importer"
+git push origin main
+```
+
+**VNC on VPS** (`147.45.175.194`) — one paste:
+
+```bash
+cd /opt/fuel-map
+git pull --ff-only origin main
+bash deploy/vnc-github-update.sh
+```
+
+Repo: `https://github.com/kerbyle-ai/fuel.git`
+
+## 5. Updates (code only)
 
 ```bash
 cd /opt/fuel-map
@@ -132,7 +155,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 ---
 
-## 5. Troubleshooting
+## 6. Troubleshooting
 
 | Issue | Action |
 |-------|--------|

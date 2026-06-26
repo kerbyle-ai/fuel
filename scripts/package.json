@@ -9,10 +9,14 @@
     "seed:fetch": "tsx seed-moscow.ts --fetch",
     "generate-seed": "tsx generate-seed-moscow.ts",
     "import:osm": "tsx import-osm.ts",
+    "import:benzin-price": "tsx import-benzin-price.ts",
+    "export:reports": "tsx export-db-dump.ts",
     "test:telegram-post": "node --test lib/telegram-post.test.mjs"
   },
   "dependencies": {
-    "pg": "^8.13.1"
+    "cheerio": "^1.2.0",
+    "pg": "^8.13.1",
+    "playwright": "^1.61.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",

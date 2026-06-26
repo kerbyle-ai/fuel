@@ -41,6 +41,7 @@ npm run migrate
 | `npm run seed:fetch` | Fetch Moscow bbox from Overpass, write JSON, then seed | **~100–400** (bbox) |
 | `npm run generate-seed` | Generate synthetic JSON → `backend/seed-data/seed-moscow.json` (Docker auto-seed) | **100** |
 | `npm run import:osm` | Full Russia import via Overpass (`amenity=fuel`) | **~26,000** |
+| `npm run import:benzin-price` | Prices from [benzin-price.ru](https://www.benzin-price.ru/) (Playwright) | varies by region |
 
 ### Moscow seed (local dev)
 
@@ -95,6 +96,25 @@ out center;
 ## Deduplication
 
 Stations within **50 meters** are merged. The entry with richer metadata (brand, name, region) is kept.
+
+### benzin-price.ru price import
+
+Imports per-station prices via headless browser (site uses JS anti-bot gate).
+
+```bash
+# Moscow only, dry run (no DB writes)
+npm run import:benzin-price -- --region 77 --dry-run
+
+# Moscow + MO + Krasnodar
+npm run import:benzin-price -- --region 77,50,23
+
+# All preset regions
+npm run import:benzin-price -- --region all
+```
+
+Requires `npx playwright install chromium` once after `npm install`.
+
+**Legal note:** [benzin-price.ru](https://www.benzin-price.ru/) prohibits automated parsing without written permission. Use low request rate (`--delay 2000`).
 
 ## Environment
 

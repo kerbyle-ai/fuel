@@ -14,5 +14,10 @@ id_rsa*
 
 
 *.sql.gz
+!deploy/fuelmap-backup.sql.gz
+!deploy/reports-seed.sql.gz
 fuel-map-deploy.tgz
+
+scripts/data/benzin-cookies*.txt
+scripts/data/benzin-debug*.html
 
