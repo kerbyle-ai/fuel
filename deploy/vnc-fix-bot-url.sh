@@ -19,20 +19,22 @@ grep '^WEB_APP_URL=' .env
 echo "=== 2. git pull ==="
 git pull
 
-echo "=== 3. Docker outbound (host curl OK, container ETIMEDOUT) ==="
-if ! ${COMPOSE:-docker compose -f docker-compose.yml -f docker-compose.prod.yml} --profile telegram exec -T telegram-bot wget -qO- --timeout=8 https://api.telegram.org >/dev/null 2>&1; then
-  echo "Container cannot reach api.telegram.org — adding DOCKER-USER ACCEPT rule"
-  iptables -C DOCKER-USER -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -j ACCEPT
+echo "=== 3. Telegram API reachability (bot uses host network) ==="
+if ! wget -qO- --timeout=8 https://api.telegram.org >/dev/null 2>&1; then
+  echo "WARN: host cannot reach api.telegram.org — check Timeweb firewall outbound 443"
+else
+  echo "OK: host reaches api.telegram.org"
 fi
 
-echo "=== 4. Rebuild telegram-bot ==="
+echo "=== 4. Rebuild api + telegram-bot ==="
 COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
+${COMPOSE} up -d api
 ${COMPOSE} --profile telegram up -d --build telegram-bot --force-recreate
 
 echo "=== 5. Bot logs (need: Bot is polling for updates) ==="
 sleep 5
-${COMPOSE} --profile telegram logs telegram-bot --tail=40 2>/dev/null | grep -E 'WEB_APP_URL=|polling|getMe failed|Menu button' || true
+${COMPOSE} --profile telegram logs telegram-bot --tail=40 2>/dev/null | grep -E 'API_URL=|WEB_APP_URL=|polling|getMe failed|Menu button' || true
 
 echo ""
 echo "ГОТОВО. В Telegram: удалите чат с ботом → /start → «Открыть карту»."
-echo "Если getMe ETIMEDOUT: Timeweb firewall → исходящий 443. Menu Button: @BotFather → ${TUNNEL_URL}"
+echo "Бот в host network — тест wget из контейнера не нужен. Menu Button: @BotFather → ${TUNNEL_URL}"

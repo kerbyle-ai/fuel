@@ -3,15 +3,17 @@
 #
 # Безопасность:
 # - PostgreSQL НЕ проброшен на хост (только внутри docker network)
-# - API НЕ проброшен на хост (доступ через nginx внутри compose)
-# - nginx слушает 0.0.0.0:80 и 0.0.0.0:8090 — публичный доступ по IP (порт 80 для ISP без нестандартных портов)
+# - API на 127.0.0.1:3001 (localhost; nginx — публичный фронт)
+# - telegram-bot: network_mode host → исходящий HTTPS как с хоста (обход Docker NAT ETIMEDOUT)
+# - nginx слушает 0.0.0.0:80, 8090, 8888 — публичный доступ по IP
 
 services:
   db:
     ports: !reset []
 
   api:
-    ports: !reset []
+    ports:
+      - "127.0.0.1:3001:3001"
     environment:
       NODE_ENV: production
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://your-domain.ru}
@@ -20,3 +22,9 @@ services:
     ports:
       - "0.0.0.0:80:80"
       - "0.0.0.0:${NGINX_PORT:-8090}:80"
+      - "0.0.0.0:8888:80"
+
+  telegram-bot:
+    network_mode: host
+    environment:
+      API_URL: http://127.0.0.1:3001/api
