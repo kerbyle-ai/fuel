@@ -1,5 +1,6 @@
 ﻿import './env.js';
-import { Bot, InlineKeyboard, Keyboard } from 'grammy';
+import { Bot, Keyboard } from 'grammy';
+import type { Context } from 'grammy';
 import {
   ApiError,
   buildMapUrl,
@@ -17,37 +18,52 @@ const WEB_APP_URL = process.env.WEB_APP_URL || 'http://localhost:8090';
 const CHANNEL_URL = process.env.TELEGRAM_CHANNEL_URL || 'https://t.me/toplivo99';
 const WEB_APP_LINK = buildMapUrl(WEB_APP_URL, { campaign: 'fuel_federal' });
 
+const BTN_NEARBY = 'Посмотреть рядом';
+const BTN_RESTART = 'Перезапустить бот';
+const BTN_MAP = 'Открыть карту';
+
 const bot = new Bot(token);
 
-function mainKeyboard(): InlineKeyboard {
-  return new InlineKeyboard()
-    .url('🗺 Открыть карту', WEB_APP_LINK)
+/** Always-visible bottom keyboard (ReplyKeyboardMarkup). */
+function persistentKeyboard(): Keyboard {
+  return new Keyboard()
+    .text(BTN_NEARBY)
+    .text(BTN_RESTART)
     .row()
-    .url('📢 Канал', CHANNEL_URL);
+    .webApp(BTN_MAP, WEB_APP_LINK)
+    .resized()
+    .persistent();
 }
 
-function reportKeyboard(lat?: number, lng?: number): InlineKeyboard {
-  const link = buildMapUrl(WEB_APP_URL, {
-    lat,
-    lng,
-    campaign: 'report',
-  });
-  return new InlineKeyboard().url('📍 Открыть карту для отчёта', link);
+function withPersistentKeyboard(extra?: Record<string, unknown>) {
+  return { ...extra, reply_markup: persistentKeyboard() };
 }
 
-bot.command('start', async (ctx) => {
+async function sendStart(ctx: Context) {
   await ctx.reply(
     '⛽ *Карта топлива*\n\n' +
       'Бесплатная карта АЗС по России — где сейчас *есть* или *нет* топлива.\n\n' +
       'Статусы обновляют водители на дороге: один клик после заправки — и коллеги видят актуальную картину.\n\n' +
       '*Как пользоваться:*\n' +
-      '• /nearby — 5 ближайших АЗС (нужна 📍 геолокация)\n' +
+      '• «Посмотреть рядом» — 5 ближайших АЗС (нужна 📍 геолокация)\n' +
+      '• «Открыть карту» — карта в браузере\n' +
       '• /report — отметить наличие на карте\n' +
       '• /help — список команд\n\n' +
-      'Откройте карту в браузере или перейдите в канал 👇',
-    { parse_mode: 'Markdown', reply_markup: mainKeyboard() }
+      `Канал с обновлениями: [${CHANNEL_URL}](${CHANNEL_URL})`,
+    withPersistentKeyboard({ parse_mode: 'Markdown', link_preview_options: { is_disabled: true } })
   );
-});
+}
+
+async function sendNearbyPrompt(ctx: Context) {
+  await ctx.reply(
+    'Покажу до 5 ближайших АЗС со статусом топлива в радиусе 10 км.\n\n' +
+      'Отправьте 📍 геолокацию (скрепка → «Геопозиция») — можно с пассажирского места, не за рулём 🙂',
+    withPersistentKeyboard()
+  );
+}
+
+bot.command('start', sendStart);
+bot.hears(BTN_RESTART, sendStart);
 
 bot.command('help', async (ctx) => {
   await ctx.reply(
@@ -56,40 +72,30 @@ bot.command('help', async (ctx) => {
       '/nearby — 5 ближайших АЗС (отправьте 📍 геолокацию)\n' +
       '/report — открыть карту для отчёта о топливе\n' +
       '/help — этот список\n\n' +
-      'Можно просто отправить 📍 геолокацию — бот покажет АЗС рядом.',
-    { parse_mode: 'Markdown', reply_markup: mainKeyboard() }
+      'Можно просто отправить 📍 геолокацию — бот покажет АЗС рядом.\n\n' +
+      'Внизу всегда доступны кнопки: «Посмотреть рядом», «Перезапустить бот», «Открыть карту».',
+    withPersistentKeyboard({ parse_mode: 'Markdown' })
   );
 });
 
-bot.command('nearby', async (ctx) => {
-  const keyboard = new Keyboard()
-    .requestLocation('📍 Отправить геолокацию')
-    .resized();
-  await ctx.reply(
-    'Покажу до 5 ближайших АЗС со статусом топлива в радиусе 10 км.\n\n' +
-      'Нажмите кнопку и отправьте геолокацию — можно с пассажирского места, не за рулём 🙂',
-    { reply_markup: keyboard }
-  );
-});
+bot.command('nearby', sendNearbyPrompt);
+bot.hears(BTN_NEARBY, sendNearbyPrompt);
 
 bot.command('report', async (ctx) => {
   await ctx.reply(
     'Помогите другим водителям — отметьте, есть ли топливо на вашей АЗС.\n\n' +
-      '1. Откройте карту\n' +
+      '1. Нажмите «Открыть карту» внизу\n' +
       '2. Найдите заправку\n' +
       '3. Нажмите 🟢 «Есть» или 🔴 «Нет»\n\n' +
       'Занимает около 10 секунд. Спасибо, что участвуете! 🙌',
-    {
-      reply_markup: reportKeyboard(),
-      link_preview_options: { is_disabled: true },
-    }
+    withPersistentKeyboard({ link_preview_options: { is_disabled: true } })
   );
 });
 
 bot.on('message:location', async (ctx) => {
   const { latitude, longitude } = ctx.message.location;
 
-  const waiting = await ctx.reply('Ищу АЗС рядом…');
+  const waiting = await ctx.reply('Ищу АЗС рядом…', withPersistentKeyboard());
 
   try {
     const stations = await fetchNearbyStations(latitude, longitude, 5);
@@ -99,7 +105,7 @@ bot.on('message:location', async (ctx) => {
         ctx.chat!.id,
         waiting.message_id,
         'Рядом не найдено АЗС в радиусе 10 км.\n\nПопробуйте другую точку или откройте карту целиком.',
-        { reply_markup: mainKeyboard() }
+        { link_preview_options: { is_disabled: true } }
       );
       return;
     }
@@ -112,7 +118,6 @@ bot.on('message:location', async (ctx) => {
       {
         parse_mode: 'Markdown',
         link_preview_options: { is_disabled: true },
-        reply_markup: mainKeyboard(),
       }
     );
   } catch (err) {
@@ -121,16 +126,11 @@ bot.on('message:location', async (ctx) => {
       err instanceof ApiError
         ? err.message
         : 'Не удалось получить данные. Попробуйте позже.';
-    await ctx.api.editMessageText(ctx.chat!.id, waiting.message_id, message, {
-      reply_markup: mainKeyboard(),
-    });
+    await ctx.api.editMessageText(ctx.chat!.id, waiting.message_id, message);
   }
 
-  // Скрыть клавиатуру «Отправить геолокацию»
   await ctx
-    .reply('Чтобы обновить список — снова /nearby или отправьте 📍.', {
-      reply_markup: { remove_keyboard: true },
-    })
+    .reply('Чтобы обновить список — снова «Посмотреть рядом» или отправьте 📍.', withPersistentKeyboard())
     .catch(() => undefined);
 });
 
