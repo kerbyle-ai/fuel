@@ -40,7 +40,7 @@ export async function stationRoutes(app: FastifyInstance): Promise<void> {
         hideUnavailable: hide_unavailable === 'true' || hide_unavailable === '1',
         hideWithoutFuel: hide_without_fuel === 'true' || hide_without_fuel === '1',
       });
-      return { stations };
+      return { stations, meta: { count: stations.length, bbox } };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'UNKNOWN';
       if (message === 'INVALID_BBOX') {

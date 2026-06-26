@@ -128,7 +128,7 @@ export async function listStationsInBbox(options: {
      FROM stations
      WHERE lat BETWEEN $2 AND $4
        AND lng BETWEEN $1 AND $3
-     ORDER BY name
+     ORDER BY id
      LIMIT 5000`,
     [minLng, minLat, maxLng, maxLat]
   );

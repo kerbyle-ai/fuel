@@ -91,7 +91,9 @@ export async function upsertBenzinStation(detail: BenzinStationDetail): Promise<
       detail.lat,
       detail.lng,
       osmId,
-      detail.regionId ? String(detail.regionId) : null,
+      detail.regionId
+        ? (BENZIN_REGIONS.find((r) => r.id === detail.regionId)?.name ?? String(detail.regionId))
+        : null,
     ]
   );
   return rows[0].id;
@@ -129,13 +131,17 @@ export async function matchStationByProximity(
 
   const norm = normalizeName(row.stationName);
   const regionName = BENZIN_REGIONS.find((r) => r.id === row.regionId)?.name ?? '';
+  const regionCode = String(row.regionId);
   const namePrefix = row.stationName.split(/\s+/)[0] ?? row.stationName;
   const { rows: candidates } = await query<DbStation>(
     `SELECT id, name, brand, lat, lng, osm_id
      FROM stations
-     WHERE ($1 = '' OR region ILIKE $2) OR name ILIKE $3 OR brand ILIKE $3
+     WHERE region ILIKE $2
+        OR region = $4
+        OR name ILIKE $3
+        OR brand ILIKE $3
      LIMIT 300`,
-    [regionName, `%${regionName}%`, `%${namePrefix}%`]
+    [regionName, `%${regionName}%`, `%${namePrefix}%`, regionCode]
   );
 
   let best: { id: number; score: number } | null = null;

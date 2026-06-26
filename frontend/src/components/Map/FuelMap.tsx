@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet.markercluster';
 import type { StationSummary } from '../../api/types';
 import { MAP_DEFAULTS } from '../../constants';
+import { isDegenerateBbox } from '../../utils/bbox';
 import { createStationIcon } from '../../utils/markers';
 
 interface FuelMapProps {
@@ -68,13 +69,18 @@ export function FuelMap({
     map.addLayer(cluster);
 
     const emitBbox = () => {
+      const el = containerRef.current;
+      if (!el || el.clientHeight < 80 || el.clientWidth < 80) return;
+
       const b = map.getBounds();
-      onBboxRef.current({
+      const bbox = {
         south: b.getSouth(),
         west: b.getWest(),
         north: b.getNorth(),
         east: b.getEast(),
-      });
+      };
+      if (isDegenerateBbox(bbox)) return;
+      onBboxRef.current(bbox);
     };
 
     const syncMap = () => {
@@ -87,8 +93,7 @@ export function FuelMap({
     clusterRef.current = cluster;
 
     map.whenReady(() => {
-      syncMap();
-      window.setTimeout(syncMap, 150);
+      window.setTimeout(syncMap, 350);
     });
 
     window.addEventListener('resize', syncMap);

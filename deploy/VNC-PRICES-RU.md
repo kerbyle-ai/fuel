@@ -90,6 +90,44 @@ curl -s "http://127.0.0.1:8090/api/stations?bbox=37.3,55.5,37.9,55.9&fuel_types=
 
 **Ожидание:** stations ~25 560, priced_7d 7 000+, benzin_links растёт после импорта.
 
+### Диагностика «в Москве только 3 АЗС»
+
+Различайте: **3 маркера на карте** (счётчик «N АЗС в области») vs **3 АЗС с ценами** (зелёные / превью цены).
+
+```bash
+COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
+
+# 1) Всего станций в БД (ожидание ~25560; ~100 = только seed после git pull)
+$COMPOSE exec -T db psql -U fuelmap -d fuelmap -c "SELECT COUNT(*) AS stations_total FROM stations;"
+
+# 2) Станции в bbox Москвы (lat 55.5–56.0, lng 37.3–37.9)
+$COMPOSE exec -T db psql -U fuelmap -d fuelmap -c \
+  "SELECT COUNT(*) AS moscow_bbox FROM stations WHERE lat BETWEEN 55.5 AND 56.0 AND lng BETWEEN 37.3 AND 37.9;"
+
+# 3) Привязки benzin для региона 77 (Москва)
+$COMPOSE exec -T db psql -U fuelmap -d fuelmap -c \
+  "SELECT COUNT(*) AS benzin_links_moscow FROM benzin_station_links b JOIN stations s ON s.id=b.station_id WHERE s.lat BETWEEN 55.5 AND 56.0 AND s.lng BETWEEN 37.3 AND 37.9;"
+
+# 4) Станции с ценой за 7 дней в bbox Москвы
+$COMPOSE exec -T db psql -U fuelmap -d fuelmap -c \
+  "SELECT COUNT(DISTINCT r.station_id) AS moscow_priced_7d FROM reports r JOIN stations s ON s.id=r.station_id WHERE s.lat BETWEEN 55.5 AND 56.0 AND s.lng BETWEEN 37.3 AND 37.9 AND r.price IS NOT NULL AND r.created_at > NOW() - INTERVAL '7 days';"
+
+# 5) API: все маркеры в bbox (без фильтра топлива)
+curl -sS "http://127.0.0.1:8090/api/stations?bbox=37.3,55.5,37.9,56.0" \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print('api_count', len(d.get('stations',[])), 'meta', d.get('meta'))"
+
+# 6) API: только с отчётами по АИ-95 + скрыть без топлива (как фильтр «только с ценами»)
+curl -sS "http://127.0.0.1:8090/api/stations?bbox=37.3,55.5,37.9,56.0&fuel_types=ai95&hide_without_fuel=true" \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print('api_with_fuel', len(d.get('stations',[])))"
+```
+
+| Симптом | Причина | Лечение |
+|---------|---------|---------|
+| `stations_total` ~100, `moscow_bbox` ~100 | Полный дамп не восстановлен, только Docker seed | `bash deploy/vnc-restore-db.sh` |
+| `stations_total` ~25560, `api_count` 3 | Баг фронта (устаревший bbox) или сильный зум | `git pull` + rebuild nginx; отдалить карту |
+| `api_count` сотни, `moscow_priced_7d` 3 | Цены не импортированы | `bash deploy/run-benzin-import.sh --region 77` |
+| `benzin_links_moscow` 3 | Импорт benzin только начался / gate | `tail -f /var/log/fuel-map-import.log` |
+
 ---
 
 ## 5. Cron (авто каждые 2 часа)

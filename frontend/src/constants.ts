@@ -23,7 +23,7 @@ export const MAP_DEFAULTS = {
 export const DEFAULT_FETCH_BBOX = {
   south: 55.5,
   west: 37.3,
-  north: 55.9,
+  north: 56.0,
   east: 37.9,
 } as const;
 

@@ -111,13 +111,9 @@ function defaultHeaders(): HeadersInit {
 
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-
   const res = await fetch(`${BASE}${path}`, {
-
     headers: { ...defaultHeaders(), ...init?.headers },
-
     ...init,
-
   });
 
 
@@ -290,32 +286,24 @@ export interface BboxParams {
 
 
 
-export async function fetchStationsInBbox(params: BboxParams): Promise<StationSummary[]> {
-
+export async function fetchStationsInBbox(
+  params: BboxParams,
+  signal?: AbortSignal
+): Promise<StationSummary[]> {
   const bbox = [params.west, params.south, params.east, params.north].join(',');
 
   const qs = new URLSearchParams({ bbox });
 
-
-
   if (params.fuelTypes?.length) {
-
     qs.set('fuel_types', params.fuelTypes.join(','));
-
   }
-
   if (params.hideWithoutFuel) {
-
     qs.set('hide_without_fuel', 'true');
-
   }
 
-
-
-  const data = await request<{ stations: BackendStation[] }>(`/stations?${qs}`);
+  const data = await request<{ stations: BackendStation[] }>(`/stations?${qs}`, { signal });
 
   return data.stations.map((s) => mapStationSummary(s, params.fuelTypes));
-
 }
 
 

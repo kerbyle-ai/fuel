@@ -32,9 +32,20 @@ PRICED=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) FR
 LINKS=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) FROM benzin_station_links;" 2>/dev/null || echo 0)
 echo "Before seed: stations=$STATIONS reports=$REPORTS priced_7d=$PRICED benzin_links=$LINKS"
 
-if [ "${STATIONS:-0}" -lt 1000 ] && [ -f deploy/fuelmap-backup.sql.gz ]; then
-  echo "Restoring full DB from deploy/fuelmap-backup.sql.gz ..."
-  bash deploy/vnc-restore-db.sh
+if [ "${STATIONS:-0}" -lt 1000 ]; then
+  BACKUP_FILE=""
+  for candidate in "$PROJECT_DIR/fuelmap-backup.sql.gz" "$PROJECT_DIR/deploy/fuelmap-backup.sql.gz"; do
+    if [ -f "$candidate" ]; then
+      BACKUP_FILE="$candidate"
+      break
+    fi
+  done
+  if [ -n "$BACKUP_FILE" ]; then
+    echo "Low station count (${STATIONS}) — restoring from $BACKUP_FILE ..."
+    BACKUP="$BACKUP_FILE" bash deploy/vnc-restore-db.sh
+  else
+    echo "WARN: stations=${STATIONS} (<1000) and no fuelmap-backup.sql.gz — run: bash deploy/vnc-restore-db.sh"
+  fi
 fi
 
 if [ -f deploy/reports-seed.sql.gz ] && [ "${PRICED:-0}" -lt 100 ]; then
