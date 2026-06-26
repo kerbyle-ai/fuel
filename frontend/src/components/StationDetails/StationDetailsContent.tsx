@@ -51,9 +51,6 @@ export function StationDetailsContent({
               </div>
             ))}
           </div>
-          <p className="station-prices-banner__note">
-            Данные benzin-price.ru и отчёты водителей · обновление каждые 2 ч
-          </p>
         </div>
       )}
 
