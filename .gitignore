@@ -20,4 +20,9 @@ fuel-map-deploy.tgz
 
 scripts/data/benzin-cookies*.txt
 scripts/data/benzin-debug*.html
+scripts/data/benzin-test*.html
+scripts/data/benzin-moscow*.html
+scripts/data/benzin-price2*.html
+scripts/data/benzin-homepage*.html
+scripts/data/benzin-region*.html
 

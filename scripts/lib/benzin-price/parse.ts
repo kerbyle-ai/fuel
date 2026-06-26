@@ -41,12 +41,57 @@ export function parseStationId(href: string | undefined): number | null {
 }
 
 function isGatePage(html: string): boolean {
-  return html.includes("$('#testdiv').load('check_s.php") && html.length < 8000;
+  return (
+    (html.includes("$('#testdiv').load('check_s.php") || html.includes("load('check_s.php")) &&
+    html.length < 8000
+  );
+}
+
+function isEmptyBlockedBody(html: string): boolean {
+  const trimmed = html.trim();
+  return (
+    trimmed.length < 200 ||
+    /^<html><head><\/head><body><\/body><\/html>$/i.test(trimmed)
+  );
+}
+
+export interface HtmlDiagnosis {
+  htmlLength: number;
+  hasPriceTable: boolean;
+  hasStationLinks: boolean;
+  isGatePage: boolean;
+  isEmptyBody: boolean;
+}
+
+export function diagnoseHtml(html: string): HtmlDiagnosis {
+  return {
+    htmlLength: html.length,
+    hasPriceTable: html.includes('td.price'),
+    hasStationLinks: /zapravka\.php/i.test(html),
+    isGatePage: isGatePage(html),
+    isEmptyBody: isEmptyBlockedBody(html),
+  };
 }
 
 export function assertNotGatePage(html: string, url: string): void {
-  if (isGatePage(html)) {
-    throw new Error(`Anti-bot gate on ${url} — retry with Playwright`);
+  const diag = diagnoseHtml(html);
+
+  if (diag.isEmptyBody) {
+    throw new Error(
+      `Empty/blocked response on ${url} (${diag.htmlLength} bytes) — ` +
+        `benzin-price.ru likely blocks datacenter IP. ` +
+        `Export cookies from a browser (scripts/data/benzin-cookies*.txt) or use deploy/reports-seed.sql.gz`
+    );
+  }
+
+  if (diag.isGatePage) {
+    throw new Error(`Anti-bot gate on ${url} — session bootstrap or cookies required`);
+  }
+
+  if (/region\s+\d+/.test(url) && !diag.hasPriceTable && !diag.hasStationLinks) {
+    throw new Error(
+      `No price table on ${url} (${diag.htmlLength} bytes) — HTML structure changed or access denied`
+    );
   }
 }
 

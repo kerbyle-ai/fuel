@@ -146,8 +146,44 @@ tail -20 /var/log/fuel-map-import.log
 | Проблема | Действие |
 |----------|----------|
 | На карте нет цен | `bash deploy/run-benzin-import.sh`, проверить `reports` и `benzin_station_links` |
+| `parsed: 0 prices for 0 stations` | **Блокировка IP датацентра** — benzin-price.ru отдаёт пустой `<body></body>` (HTTP 200, ~39 байт). См. ниже |
 | Импорт завис | `tail -f /var/log/fuel-map-import.log`; Playwright может ждать benzin-price.ru |
 | Дубликат cron | `deploy/install-price-import-cron.sh` идемпотентен |
-| Gate/captcha на benzin | увеличить `--delay 3000`, повторить позже |
+| Gate/captcha на benzin | экспорт cookies с домашнего ПК → `scripts/data/benzin-cookies3.txt`, rebuild importer |
+
+### Блокировка VPS (0 станций, пустой HTML)
+
+**Причина:** `price.php` редиректит на `price2.php`, но с IP Timeweb сервер отдаёт пустую страницу без таблицы цен — парсер молча возвращал 0 строк.
+
+**Диагностика на VPS:**
+
+```bash
+# curl — ожидаемо пусто с датацентра
+curl -sL -o /tmp/bp.html -w "HTTP %{http_code} size %{size_download}\n" \
+  "https://www.benzin-price.ru/price2.php?region_id=77&sort=2"
+wc -c /tmp/bp.html   # ~39 байт = блокировка
+
+# dry-run с логами (после git pull)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+  --profile importer run --rm price-importer -- --region 77 --dry-run
+# Смотреть [benzin] status=... len=... empty=true
+# Артефакты: docker cp <container>:/tmp/benzin-debug ./benzin-debug
+```
+
+**Обход (seed):** если scraper не работает, подставить уже экспортированные цены:
+
+```bash
+bash deploy/apply-reports-seed.sh
+# или вручную (7293 отчёта, 44 АЗС по РФ):
+gunzip -c deploy/reports-seed.sql.gz | docker compose ... exec -T db psql -U fuelmap -d fuelmap
+```
+
+Seed срабатывает автоматически только при `priced_7d < 100`. При 360+ отчётах по РФ — **принудительно** через `apply-reports-seed.sh`.
+
+**Cookies с браузера (если IP не заблокирован полностью):**
+
+1. Зайти на benzin-price.ru в Chrome, открыть цены Москвы
+2. Экспорт cookies (расширение или DevTools) → `scripts/data/benzin-cookies3.txt` (Netscape format)
+3. `git pull` на VPS, rebuild: `docker compose --profile importer build price-importer`
 
 **Важно:** benzin-price.ru запрещает автопарсинг без разрешения — `--delay 2000` обязателен.

@@ -20,7 +20,12 @@ import {
   matchStationByProximity,
   upsertBenzinStation,
 } from './lib/benzin-price/import-db.js';
-import { parseRegionListPage, parseRegionPricePage, parseStationPage } from './lib/benzin-price/parse.js';
+import {
+  diagnoseHtml,
+  parseRegionListPage,
+  parseRegionPricePage,
+  parseStationPage,
+} from './lib/benzin-price/parse.js';
 import { BENZIN_REGIONS, parseRegionIdsArg } from './lib/benzin-price/regions.js';
 import type { BenzinPriceRow } from './lib/benzin-price/types.js';
 import { closePool } from './lib/db.js';
@@ -158,12 +163,31 @@ async function main() {
       try {
         rows = parseRegionPricePage(html, regionId);
       } catch (err) {
+        const diag = diagnoseHtml(html);
         console.warn(`  skip region: parse failed`, err);
+        console.warn(
+          `  html diagnosis: len=${diag.htmlLength} priceTable=${diag.hasPriceTable} ` +
+            `stations=${diag.hasStationLinks} gate=${diag.isGatePage} empty=${diag.isEmptyBody}`
+        );
+        if (fetcher.lastDiagnostics) {
+          const d = fetcher.lastDiagnostics;
+          console.warn(
+            `  fetch: status=${d.httpStatus} final=${d.finalUrl}`
+          );
+        }
         continue;
       }
 
       const stations = new Set(rows.map((r) => r.benzinStationId)).size;
       console.log(`  parsed: ${rows.length} prices for ${stations} stations`);
+
+      if (rows.length === 0) {
+        const diag = diagnoseHtml(html);
+        console.warn(
+          `  WARN: zero rows — len=${diag.htmlLength} priceTable=${diag.hasPriceTable} ` +
+            `empty=${diag.isEmptyBody}. Check BENZIN_DEBUG_DIR artifacts or apply reports-seed.sql.gz`
+        );
+      }
 
       if (opts.dryRun) {
         const sample = rows.slice(0, 3);

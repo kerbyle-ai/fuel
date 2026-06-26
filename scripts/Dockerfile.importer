@@ -10,8 +10,10 @@ RUN npm ci
 COPY tsconfig.json ./
 COPY import-benzin-price.ts export-db-dump.ts ./
 COPY lib ./lib
+COPY data ./data
 
 ENV NODE_ENV=production
+ENV BENZIN_DEBUG_DIR=/tmp/benzin-debug
 
 ENTRYPOINT ["npm", "run", "import:benzin-price", "--"]
 CMD ["--region", "all", "--delay", "2000", "--match-radius", "250"]

@@ -78,6 +78,8 @@ services:
       dockerfile: Dockerfile.importer
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-fuelmap}:${POSTGRES_PASSWORD:-fuelmap_secret}@db:5432/${POSTGRES_DB:-fuelmap}
+      BENZIN_COOKIES_FILE: ${BENZIN_COOKIES_FILE:-data/benzin-cookies3.txt}
+      BENZIN_DEBUG_DIR: /tmp/benzin-debug
     depends_on:
       db:
         condition: service_healthy
