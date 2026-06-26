@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchStationsInBbox } from '../api/client';
 import type { FuelCode, StationSummary } from '../api/types';
+import { DEFAULT_FETCH_BBOX } from '../constants';
 
 interface Bbox {
   south: number;
@@ -58,7 +59,7 @@ export function useStations({ fuelTypes, hideWithoutFuel, debounceMs = 400 }: Us
   }, [load]);
 
   useEffect(() => {
-    if (bboxRef.current) load(bboxRef.current);
+    load(bboxRef.current ?? DEFAULT_FETCH_BBOX);
   }, [load]);
 
   useEffect(() => () => clearTimeout(timerRef.current), []);

@@ -77,13 +77,24 @@ export function FuelMap({
       });
     };
 
+    const syncMap = () => {
+      map.invalidateSize();
+      emitBbox();
+    };
+
     map.on('moveend', emitBbox);
     mapRef.current = map;
     clusterRef.current = cluster;
 
-    emitBbox();
+    map.whenReady(() => {
+      syncMap();
+      window.setTimeout(syncMap, 150);
+    });
+
+    window.addEventListener('resize', syncMap);
 
     return () => {
+      window.removeEventListener('resize', syncMap);
       map.remove();
       mapRef.current = null;
       clusterRef.current = null;

@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
       manifest: {
-        name: 'Карта топлива',
+        name: 'Топливо России',
         short_name: 'Топливо',
-        description: 'Карта наличия топлива на АЗС России',
+        description: 'Карта АЗС России — цены и наличие топлива',
         theme_color: '#1a5f2a',
         background_color: '#f4f6f4',
         display: 'standalone',

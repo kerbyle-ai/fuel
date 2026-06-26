@@ -848,10 +848,203 @@ textarea {
   filter: brightness(1.05);
 }
 
+/* Telegram Mini App */
+.app--telegram {
+  background: var(--tg-bg, var(--bg));
+  color: var(--tg-text, var(--text));
+}
+
+.tg-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  padding-top: max(0.65rem, env(safe-area-inset-top));
+  background: linear-gradient(135deg, var(--green-800), var(--green-700));
+  color: #fff;
+  flex-shrink: 0;
+  z-index: 1100;
+}
+
+.tg-header__brand {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.tg-header__icon {
+  font-size: 1.5rem;
+}
+
+.tg-header__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.tg-header__tagline {
+  margin: 0;
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+.tg-header__channel {
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.tg-filters-bar {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  z-index: 900;
+  pointer-events: none;
+}
+
+.tg-filter-chip {
+  pointer-events: auto;
+  border: none;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+.tg-filter-chip--active {
+  background: var(--green-700);
+  color: #fff;
+}
+
+.map-price-preview {
+  position: absolute;
+  bottom: 5.5rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  z-index: 900;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.75rem;
+  box-shadow: var(--shadow);
+  font-size: 0.85rem;
+}
+
+.map-price-preview strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.map-price-preview__prices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.map-price-preview__chip {
+  background: var(--green-100);
+  color: var(--green-800);
+  border-radius: 6px;
+  padding: 0.15rem 0.45rem;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.sidebar__channel-link {
+  margin-top: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.sidebar--compact .sidebar__body {
+  max-height: 28vh;
+}
+
+.station-prices-banner {
+  margin: 0 0 1rem;
+  padding: 0.75rem;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, #ecfdf3, #f0fdf4);
+  border: 1px solid #bbf7d0;
+}
+
+.station-prices-banner__title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  color: var(--green-800);
+}
+
+.station-prices-banner__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.4rem;
+}
+
+.station-prices-banner__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-size: 0.8rem;
+}
+
+.station-prices-banner__item strong {
+  font-size: 1rem;
+  color: var(--green-800);
+}
+
+.station-prices-banner__note {
+  margin: 0.5rem 0 0;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+body.tg-dark {
+  --bg: var(--tg-bg, #1c1c1e);
+  --surface: var(--tg-secondary-bg, #2c2c2e);
+  --text: var(--tg-text, #fff);
+  --text-muted: var(--tg-hint, #8e8e93);
+}
+
+body.tg-dark .station-prices-banner {
+  background: rgba(22, 101, 52, 0.2);
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
+body.tg-dark .map-price-preview__chip {
+  background: rgba(22, 101, 52, 0.35);
+  color: #bbf7d0;
+}
+
 /* Mobile */
 @media (max-width: 768px) {
   .app {
     flex-direction: column;
+  }
+
+  .app--telegram .sidebar {
+    display: none;
   }
 
   .sidebar {

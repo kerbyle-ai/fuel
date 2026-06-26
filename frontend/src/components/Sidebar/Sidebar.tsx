@@ -12,9 +12,11 @@ interface SidebarProps {
   stationCount: number;
   loading: boolean;
   statsRefreshKey?: number;
+  compact?: boolean;
   onToggleFuel: (code: FuelCode) => void;
   onHideWithoutFuelChange: (value: boolean) => void;
   onSearchSelect: (station: SearchResult) => void;
+  onOpenChannel?: () => void;
 }
 
 export function Sidebar({
@@ -23,21 +25,28 @@ export function Sidebar({
   stationCount,
   loading,
   statsRefreshKey,
+  compact = false,
   onToggleFuel,
   onHideWithoutFuelChange,
   onSearchSelect,
+  onOpenChannel,
 }: SidebarProps) {
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${compact ? ' sidebar--compact' : ''}`}>
       <header className="sidebar__header">
         <div className="sidebar__logo">
           <span className="sidebar__logo-icon">⛽</span>
           <div>
-            <h1>Карта топлива</h1>
-            <p className="sidebar__tagline">Наличие на АЗС России</p>
+            <h1>Топливо России</h1>
+            <p className="sidebar__tagline">Карта АЗС · канал @toplivo99</p>
           </div>
         </div>
-        <ReputationBadge refreshKey={statsRefreshKey} />
+        {!compact && <ReputationBadge refreshKey={statsRefreshKey} />}
+        {onOpenChannel && (
+          <button type="button" className="sidebar__channel-link" onClick={onOpenChannel}>
+            Канал
+          </button>
+        )}
       </header>
 
       <div className="sidebar__body">

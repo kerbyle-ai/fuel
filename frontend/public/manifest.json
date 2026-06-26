@@ -1,7 +1,7 @@
 {
-  "name": "Карта топлива",
+  "name": "Топливо России",
   "short_name": "Топливо",
-  "description": "Карта наличия топлива на АЗС России",
+  "description": "Карта АЗС России — цены и наличие топлива от канала @toplivo99",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f4f6f4",

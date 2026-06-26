@@ -1,9 +1,26 @@
 # Telegram Mini App — настройка бота @Toplivo_map_bot
 
-Бот переведён на паттерн **Mini App**: карта открывается через `Keyboard.webApp()` и Menu Button, без упоминания бота в постах канала @toplivo99.
+Бот и канал **@toplivo99** («Топливо России»): карта открывается через `Keyboard.webApp()` и Menu Button.
 
 **Текущий URL карты:** `https://announced-cap-romantic-committee.trycloudflare.com`  
 (меняется при перезапуске Cloudflare Quick Tunnel — см. `deploy/vnc-free-public-url.sh`)
+
+**Архитектура:** см. `deploy/MINI-APP-BUILD-PLAN.md` (mermaid: парсер → PostgreSQL → API → Mini App)
+
+---
+
+## Mini App frontend (реализовано)
+
+| Функция | Описание |
+|---------|----------|
+| `@twa-dev/sdk` | `ready()`, `expand()`, theme colors, haptic |
+| MainButton | «Сообщить о топливе» — скролл к форме отчёта |
+| BackButton | закрыть карточку АЗС |
+| Брендинг | «Топливо России», ссылка @toplivo99 |
+| Цены | из `/api/stations` → баннер + превью на карте |
+| Telegram mobile | компактный header, фильтры 92/95/ДТ |
+
+Цены приходят из таблицы `reports` (парсер benzin-price.ru + отчёты водителей). Отдельного `/api/prices` нет.
 
 ---
 

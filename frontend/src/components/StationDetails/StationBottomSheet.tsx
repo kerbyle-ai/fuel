@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type RefObject } from 'react';
 import { useStationDetail } from '../../hooks/useStationDetail';
 import { StationDetailsContent } from './StationDetailsContent';
 
@@ -6,12 +6,14 @@ interface StationBottomSheetProps {
   stationId: number | null;
   onClose: () => void;
   onReportSuccess: () => void;
+  reportSectionRef?: RefObject<HTMLDivElement>;
 }
 
 export function StationBottomSheet({
   stationId,
   onClose,
   onReportSuccess,
+  reportSectionRef,
 }: StationBottomSheetProps) {
   const { detail, loading, error, reload } = useStationDetail(stationId);
   const open = stationId != null;
@@ -40,6 +42,7 @@ export function StationBottomSheet({
               reload();
               onReportSuccess();
             }}
+            reportSectionRef={reportSectionRef}
           />
         )}
       </div>

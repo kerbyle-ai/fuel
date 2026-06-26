@@ -1,3 +1,4 @@
+import type { RefObject } from 'react';
 import { useStationDetail } from '../../hooks/useStationDetail';
 import { StationDetailsContent } from './StationDetailsContent';
 
@@ -5,12 +6,14 @@ interface StationDetailsPanelProps {
   stationId: number | null;
   onClose: () => void;
   onReportSuccess: () => void;
+  reportSectionRef?: RefObject<HTMLDivElement>;
 }
 
 export function StationDetailsPanel({
   stationId,
   onClose,
   onReportSuccess,
+  reportSectionRef,
 }: StationDetailsPanelProps) {
   const { detail, loading, error, reload } = useStationDetail(stationId);
 
@@ -50,6 +53,7 @@ export function StationDetailsPanel({
           reload();
           onReportSuccess();
         }}
+        reportSectionRef={reportSectionRef}
       />
     </div>
   );

@@ -19,6 +19,14 @@ export const MAP_DEFAULTS = {
   ] as [[number, number], [number, number]],
 };
 
+/** Moscow bbox for initial fetch before Leaflet emits viewport bounds */
+export const DEFAULT_FETCH_BBOX = {
+  south: 55.5,
+  west: 37.3,
+  north: 55.9,
+  east: 37.9,
+} as const;
+
 export const STATUS_LABELS: Record<string, string> = {
   available: 'Есть',
   unavailable: 'Нет',
