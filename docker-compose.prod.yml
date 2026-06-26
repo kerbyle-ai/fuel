@@ -13,7 +13,7 @@ services:
     ports: !reset []
 
   api:
-    ports:
+    ports: !reset
       - "127.0.0.1:3002:3001"
     environment:
       NODE_ENV: production
