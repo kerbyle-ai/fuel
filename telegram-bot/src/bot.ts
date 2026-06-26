@@ -94,12 +94,15 @@ bot.command('help', async (ctx) => {
 bot.command('nearby', sendNearbyPrompt);
 bot.hears(BTN_NEARBY, sendNearbyPrompt);
 
-bot.hears(BTN_MAP, async (ctx) => {
+async function sendMapLink(ctx: Context) {
   await ctx.reply(
-    `🗺 [Открыть карту топлива](${WEB_APP_LINK})`,
+    `🗺 Карта топлива:\n${WEB_APP_LINK}\n\n` +
+      `[Открыть в браузере](${WEB_APP_LINK})`,
     withPersistentKeyboard({ parse_mode: 'Markdown', link_preview_options: { is_disabled: true } })
   );
-});
+}
+
+bot.hears(BTN_MAP, sendMapLink);
 
 bot.command('report', async (ctx) => {
   await ctx.reply(
@@ -187,6 +190,22 @@ async function main() {
 
   const me = await withRetry('getMe', () => bot.api.getMe());
   console.log(`Fuel Map Telegram bot @${me.username} (id ${me.id}) starting…`);
+
+  try {
+    await bot.api.setChatMenuButton({
+      menu_button: { type: 'web_app', text: 'Открыть карту', web_app: { url: WEB_APP_LINK } },
+    });
+    console.log(`Menu button → ${WEB_APP_LINK}`);
+  } catch (err) {
+    console.warn('setChatMenuButton failed (BotFather domain?):', err);
+    try {
+      await bot.api.setChatMenuButton({
+        menu_button: { type: 'default' },
+      });
+    } catch {
+      /* ignore */
+    }
+  }
 
   await withRetry('bot.start', () =>
     bot.start({
