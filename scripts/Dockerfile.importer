@@ -13,4 +13,4 @@ COPY lib ./lib
 ENV NODE_ENV=production
 
 ENTRYPOINT ["npm", "run", "import:benzin-price", "--"]
-CMD ["--region", "all", "--delay", "1500", "--no-coords"]
+CMD ["--region", "all", "--delay", "2000", "--match-radius", "250"]

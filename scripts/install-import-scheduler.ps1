@@ -18,7 +18,7 @@ $Action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument @(
   @"
 Set-Location '$ScriptsDir'
 `$env:DATABASE_URL = 'postgresql://fuelmap:fuelmap_secret@localhost:5432/fuelmap'
-npm run import:benzin-price -- --region all --delay 1500 --no-coords *>> '$LogFile' 2>&1
+npm run import:benzin-price -- --region all --delay 2000 --match-radius 250 *>> '$LogFile' 2>&1
 "@
 ) -WorkingDirectory $ScriptsDir
 

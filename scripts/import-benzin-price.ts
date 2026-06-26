@@ -16,6 +16,7 @@ import { BenzinPriceFetcher } from './lib/benzin-price/fetcher.js';
 import {
   findStationByBenzinId,
   importPriceReport,
+  linkBenzinStation,
   matchStationByProximity,
   upsertBenzinStation,
 } from './lib/benzin-price/import-db.js';
@@ -30,6 +31,7 @@ function parseArgs(argv: string[]) {
   let listRegions = false;
   let delayMs = 1200;
   let fetchCoords = true;
+  let matchRadius = 250;
 
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -37,6 +39,7 @@ function parseArgs(argv: string[]) {
     else if (a === '--dry-run') dryRun = true;
     else if (a === '--list-regions') listRegions = true;
     else if (a === '--delay' && argv[i + 1]) delayMs = parseInt(argv[++i], 10) || 1200;
+    else if (a === '--match-radius' && argv[i + 1]) matchRadius = parseInt(argv[++i], 10) || 250;
     else if (a === '--no-coords') fetchCoords = false;
     else if (a === '--help' || a === '-h') {
       console.log(`Usage: npm run import:benzin-price -- [options]
@@ -46,19 +49,21 @@ Options:
   --dry-run        Parse only, do not write to DB
   --list-regions   Print known region IDs and exit
   --delay <ms>     Delay between requests (default: 1200)
+  --match-radius <m>  Max distance for coord match (default: 250)
   --no-coords      Skip fetching station pages for coordinates
 `);
       process.exit(0);
     }
   }
 
-  return { regions, dryRun, listRegions, delayMs, fetchCoords };
+  return { regions, dryRun, listRegions, delayMs, fetchCoords, matchRadius };
 }
 
 async function resolveStationId(
   fetcher: BenzinPriceFetcher,
   row: BenzinPriceRow,
   fetchCoords: boolean,
+  matchRadius: number,
   cache: Map<number, number>
 ): Promise<number | null> {
   const cached = cache.get(row.benzinStationId);
@@ -80,16 +85,18 @@ async function resolveStationId(
     }
   }
 
-  if (detail?.lat != null && detail?.lng != null) {
-    const id = await upsertBenzinStation(detail);
-    cache.set(row.benzinStationId, id);
-    return id;
-  }
-
-  const matched = await matchStationByProximity(row, detail);
+  const matched = await matchStationByProximity(row, detail, matchRadius);
   if (matched) {
+    await linkBenzinStation(row.benzinStationId, matched);
     cache.set(row.benzinStationId, matched);
     return matched;
+  }
+
+  if (detail?.lat != null && detail?.lng != null) {
+    const id = await upsertBenzinStation(detail);
+    await linkBenzinStation(row.benzinStationId, id);
+    cache.set(row.benzinStationId, id);
+    return id;
   }
 
   return null;
@@ -112,6 +119,8 @@ async function main() {
   console.log(`Regions: ${regionIds.join(', ')}`);
   console.log(`Dry run: ${opts.dryRun}`);
   console.log(`Delay: ${opts.delayMs}ms`);
+  console.log(`Coords: ${opts.fetchCoords}`);
+  console.log(`Match radius: ${opts.matchRadius}m`);
 
   const fetcher = new BenzinPriceFetcher({ delayMs: opts.delayMs });
   await fetcher.init();
@@ -173,6 +182,7 @@ async function main() {
           fetcher,
           stationRows[0],
           opts.fetchCoords,
+          opts.matchRadius,
           stationCache
         );
 

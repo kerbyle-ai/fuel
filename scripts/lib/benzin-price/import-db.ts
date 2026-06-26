@@ -32,12 +32,38 @@ export async function findStationByBenzinId(
   benzinStationId: number
 ): Promise<number | null> {
   const { query } = await import('../db.js');
+
+  const { rows: linked } = await query<{ station_id: number }>(
+    'SELECT station_id FROM benzin_station_links WHERE benzin_id = $1 LIMIT 1',
+    [benzinStationId]
+  );
+  if (linked[0]) return linked[0].station_id;
+
   const osmId = benzinOsmId(benzinStationId);
   const { rows } = await query<{ id: number }>(
     'SELECT id FROM stations WHERE osm_id = $1 LIMIT 1',
     [osmId]
   );
   return rows[0]?.id ?? null;
+}
+
+export async function linkBenzinStation(
+  benzinStationId: number,
+  stationId: number
+): Promise<void> {
+  const { query } = await import('../db.js');
+  await query(
+    `INSERT INTO benzin_station_links (benzin_id, station_id)
+     VALUES ($1, $2)
+     ON CONFLICT (benzin_id) DO UPDATE SET station_id = EXCLUDED.station_id`,
+    [benzinStationId, stationId]
+  );
+}
+
+function extractBrand(name: string): string | null {
+  const first = name.split(/\s+/)[0]?.trim();
+  if (!first || first.length < 2) return null;
+  return normalizeName(first);
 }
 
 export async function upsertBenzinStation(detail: BenzinStationDetail): Promise<number> {
@@ -74,23 +100,32 @@ export async function upsertBenzinStation(detail: BenzinStationDetail): Promise<
 export async function matchStationByProximity(
   row: BenzinPriceRow,
   detail: BenzinStationDetail | null,
-  radiusMeters = 150
+  radiusMeters = 250
 ): Promise<number | null> {
   const { query } = await import('../db.js');
 
+  const brand =
+    detail?.brand != null ? normalizeName(detail.brand) : extractBrand(row.stationName);
+  const brandPattern = brand ? `%${brand}%` : null;
+
   if (detail?.lat != null && detail?.lng != null) {
     const { rows } = await query<{ id: number; dist: number }>(
-      `SELECT id, ST_Distance(location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) AS dist
+      `SELECT id,
+              ST_Distance(location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) AS dist
        FROM stations
        WHERE ST_DWithin(location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography, $3)
-       ORDER BY dist ASC
+       ORDER BY
+         CASE WHEN $4::text IS NOT NULL AND (
+           brand ILIKE $4 OR name ILIKE $4
+         ) THEN 0 ELSE 1 END,
+         dist ASC
        LIMIT 1`,
-      [detail.lng, detail.lat, radiusMeters]
+      [detail.lng, detail.lat, radiusMeters, brandPattern]
     );
     if (rows[0]) return rows[0].id;
   }
 
-  if (!row.address) return null;
+  if (!row.address && !row.stationName) return null;
 
   const norm = normalizeName(row.stationName);
   const regionName = BENZIN_REGIONS.find((r) => r.id === row.regionId)?.name ?? '';
@@ -98,17 +133,27 @@ export async function matchStationByProximity(
   const { rows: candidates } = await query<DbStation>(
     `SELECT id, name, brand, lat, lng, osm_id
      FROM stations
-     WHERE ($1 = '' OR region ILIKE $2) OR name ILIKE $3
-     LIMIT 200`,
+     WHERE ($1 = '' OR region ILIKE $2) OR name ILIKE $3 OR brand ILIKE $3
+     LIMIT 300`,
     [regionName, `%${regionName}%`, `%${namePrefix}%`]
   );
 
+  let best: { id: number; score: number } | null = null;
   for (const c of candidates) {
     const cNorm = normalizeName(c.name);
-    if (cNorm.includes(norm) || norm.includes(cNorm)) return c.id;
+    const cBrand = c.brand ? normalizeName(c.brand) : '';
+    let score = 0;
+    if (cNorm === norm) score += 10;
+    else if (cNorm.includes(norm) || norm.includes(cNorm)) score += 6;
+    if (brand && cBrand && (cBrand.includes(brand) || brand.includes(cBrand))) score += 4;
+    if (row.address) {
+      const addrNorm = normalizeName(row.address);
+      if (addrNorm.length > 8 && cNorm.includes(addrNorm.slice(0, 12))) score += 3;
+    }
+    if (score > 0 && (!best || score > best.score)) best = { id: c.id, score };
   }
 
-  return null;
+  return best?.id ?? null;
 }
 
 /** Looks like a normal browser fingerprint (32 hex), stable per external station id. */
