@@ -20,13 +20,13 @@ echo "=== 2. git pull ==="
 git pull
 
 echo "=== 3. Rebuild telegram-bot + api ==="
-docker compose --profile telegram up -d --build telegram-bot api --force-recreate
+COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
+${COMPOSE} --profile telegram up -d --build telegram-bot --force-recreate
 
 echo "=== 4. WEB_APP_URL from bot logs ==="
 sleep 3
-docker compose logs telegram-bot --tail=30 2>/dev/null | grep -E 'WEB_APP_URL=' || \
-  docker compose --profile telegram logs telegram-bot --tail=30 2>/dev/null | grep -E 'WEB_APP_URL=' || \
-  echo "WARN: grep WEB_APP_URL in logs manually: docker compose logs telegram-bot --tail=50"
+${COMPOSE} --profile telegram logs telegram-bot --tail=30 2>/dev/null | grep -E 'WEB_APP_URL=' || \
+  echo "WARN: grep WEB_APP_URL in logs manually: ${COMPOSE} --profile telegram logs telegram-bot --tail=50"
 
 echo ""
 echo "ГОТОВО. «Открыть карту» открывает ${TUNNEL_URL} в браузере (Keyboard.url, без BotFather)."
