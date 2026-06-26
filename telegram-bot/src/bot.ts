@@ -30,7 +30,20 @@ function persistentKeyboard(): Keyboard {
     .text(BTN_NEARBY)
     .text(BTN_RESTART)
     .row()
-    .webApp(BTN_MAP, WEB_APP_LINK)
+    .url(BTN_MAP, WEB_APP_LINK)
+    .resized()
+    .persistent();
+}
+
+/** Nearby flow: one-tap location + persistent actions. */
+function nearbyPromptKeyboard(): Keyboard {
+  return new Keyboard()
+    .requestLocation('📍 Отправить геолокацию')
+    .row()
+    .text(BTN_NEARBY)
+    .text(BTN_RESTART)
+    .row()
+    .url(BTN_MAP, WEB_APP_LINK)
     .resized()
     .persistent();
 }
@@ -57,8 +70,8 @@ async function sendStart(ctx: Context) {
 async function sendNearbyPrompt(ctx: Context) {
   await ctx.reply(
     'Покажу до 5 ближайших АЗС со статусом топлива в радиусе 10 км.\n\n' +
-      'Отправьте 📍 геолокацию (скрепка → «Геопозиция») — можно с пассажирского места, не за рулём 🙂',
-    withPersistentKeyboard()
+      'Нажмите «📍 Отправить геолокацию» ниже — можно с пассажирского места, не за рулём 🙂',
+    { reply_markup: nearbyPromptKeyboard() }
   );
 }
 
