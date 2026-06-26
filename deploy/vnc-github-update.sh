@@ -28,7 +28,8 @@ done
 
 STATIONS=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) FROM stations;" 2>/dev/null || echo 0)
 REPORTS=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) FROM reports;" 2>/dev/null || echo 0)
-echo "Before seed: stations=$STATIONS reports=$REPORTS"
+LINKS=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) FROM benzin_station_links;" 2>/dev/null || echo 0)
+echo "Before seed: stations=$STATIONS reports=$REPORTS benzin_links=$LINKS"
 
 if [ "${STATIONS:-0}" -lt 1000 ] && [ -f deploy/fuelmap-backup.sql.gz ]; then
   echo "Restoring full DB from deploy/fuelmap-backup.sql.gz ..."
@@ -42,10 +43,14 @@ if [ -f deploy/reports-seed.sql.gz ] && [ "${REPORTS:-0}" -lt 500 ]; then
   echo "Reports after seed: $REPORTS"
 fi
 
-# Optional: refresh prices from web (Docker importer)
+# Benzin-price import (Docker Playwright → reports in DB → map)
 if [ "${RUN_BENZIN_IMPORT:-0}" = "1" ]; then
-  echo "Running benzin-price import (Docker)..."
+  echo "Running benzin-price import (foreground)..."
   bash deploy/run-benzin-import.sh
+elif [ "${LINKS:-0}" -eq 0 ] && [ "${AUTO_BENZIN_IMPORT:-1}" = "1" ]; then
+  echo "No benzin_station_links yet — starting background import (~1–2 h)..."
+  echo "Log: tail -f /var/log/fuel-map-import.log"
+  nohup bash deploy/run-benzin-import.sh >> /var/log/fuel-map-import.log 2>&1 &
 fi
 
 for _ in $(seq 1 30); do
@@ -55,7 +60,8 @@ done
 curl -sS http://127.0.0.1:8090/api/health || true
 REPORTS=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) FROM reports;")
 STATIONS=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) FROM stations;")
-echo "Done. stations=$STATIONS reports=$REPORTS"
+LINKS=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) FROM benzin_station_links;" 2>/dev/null || echo 0)
+echo "Done. stations=$STATIONS reports=$REPORTS benzin_links=$LINKS"
 echo "Open: http://147.45.175.194:8090"
 
 if [ "${INSTALL_PRICE_CRON:-1}" = "1" ]; then

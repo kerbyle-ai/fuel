@@ -159,6 +159,8 @@ tail -f /var/log/fuel-map-import.log
 
 Расписание: `0 */2 * * *` (в 00:00, 02:00, 04:00 …). Импорт идёт в Docker (`price-importer` + Playwright), **с координатами** и радиусом сопоставления 250 м.
 
+**Подробная инструкция (RU):** `deploy/VNC-PRICES-RU.md`
+
 **Handover для чата разработки:** `deploy/DEV-CHAT-HANDOVER.md`
 
 ## 5. Updates (code only)
