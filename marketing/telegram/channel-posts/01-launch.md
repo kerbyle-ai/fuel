@@ -17,10 +17,7 @@ title: "Запуск: карта АЗС с отчётами в реальном 
 Данные обновляют **водители как вы** — за 30 секунд прямо с телефона.
 
 📍 Открыть карту:
-https://fuelmap.ru?utm_source=telegram&utm_medium=channel&utm_campaign=fuel_federal
-
-🤖 Или бот — 5 ближайших АЗС по геолокации:
-@FuelMapBot
+https://announced-cap-romantic-committee.trycloudflare.com?utm_source=telegram&utm_medium=channel&utm_campaign=fuel_federal
 
 Без регистрации. Без рекламы. Только полезное.
 

@@ -1,5 +1,5 @@
 ﻿import './env.js';
-import { Bot, InlineKeyboard, Keyboard } from 'grammy';
+import { Bot, Keyboard } from 'grammy';
 import type { Context } from 'grammy';
 import {
   ApiError,
@@ -26,13 +26,13 @@ const BTN_MAP_LEGACY = 'Открыть карту';
 
 const bot = new Bot(token);
 
-/** Always-visible bottom keyboard (ReplyKeyboardMarkup). */
+/** Bottom keyboard: nearby + Mini App launch button. */
 function persistentKeyboard(): Keyboard {
   return new Keyboard()
     .text(BTN_NEARBY)
     .text(BTN_RESTART)
     .row()
-    .text(BTN_MAP)
+    .webApp(BTN_MAP, WEB_APP_LINK)
     .resized()
     .persistent();
 }
@@ -45,7 +45,7 @@ function nearbyPromptKeyboard(): Keyboard {
     .text(BTN_NEARBY)
     .text(BTN_RESTART)
     .row()
-    .text(BTN_MAP)
+    .webApp(BTN_MAP, WEB_APP_LINK)
     .resized()
     .persistent();
 }
@@ -55,7 +55,7 @@ function withPersistentKeyboard(extra?: Record<string, unknown>) {
 }
 
 async function sendStart(ctx: Context) {
-  // Drop stale reply keyboard (Telegram caches web_app URLs in persistent keyboards).
+  // Drop stale reply keyboard (Telegram caches old web_app URLs in persistent keyboards).
   await ctx.reply('Обновляю меню…', { reply_markup: { remove_keyboard: true } });
 
   await ctx.reply(
@@ -63,8 +63,8 @@ async function sendStart(ctx: Context) {
       'Бесплатная карта АЗС по России — где сейчас *есть* или *нет* топлива.\n\n' +
       'Статусы обновляют водители на дороге: один клик после заправки — и коллеги видят актуальную картину.\n\n' +
       '*Как пользоваться:*\n' +
+      '• «🗺 Открыть карту» — карта в Telegram (Mini App)\n' +
       '• «Посмотреть рядом» — 5 ближайших АЗС (нужна 📍 геолокация)\n' +
-      '• «🗺 Открыть карту» — карта в браузере (кнопка-ссылка всегда актуальна)\n' +
       '• /report — отметить наличие на карте\n' +
       '• /help — список команд\n\n' +
       `Канал с обновлениями: [${CHANNEL_URL}](${CHANNEL_URL})`,
@@ -91,7 +91,7 @@ bot.command('help', async (ctx) => {
       '/report — открыть карту для отчёта о топливе\n' +
       '/help — этот список\n\n' +
       'Можно просто отправить 📍 геолокацию — бот покажет АЗС рядом.\n\n' +
-      'Внизу всегда доступны кнопки: «Посмотреть рядом», «Перезапустить бот», «🗺 Открыть карту».',
+      'Кнопка «🗺 Открыть карту» внизу открывает Mini App.',
     withPersistentKeyboard({ parse_mode: 'Markdown' })
   );
 });
@@ -99,22 +99,13 @@ bot.command('help', async (ctx) => {
 bot.command('nearby', sendNearbyPrompt);
 bot.hears(BTN_NEARBY, sendNearbyPrompt);
 
-function mapInlineKeyboard(): InlineKeyboard {
-  return new InlineKeyboard().url('🗺 Открыть карту', WEB_APP_LINK);
-}
-
-async function sendMapLink(ctx: Context) {
-  await ctx.reply(`🗺 Карта топлива:\n${WEB_APP_LINK}`, {
-    parse_mode: 'Markdown',
-    link_preview_options: { is_disabled: true },
-    reply_markup: mapInlineKeyboard(),
-  });
-  await ctx
-    .reply('Или нажмите кнопку внизу — «🗺 Открыть карту».', withPersistentKeyboard())
-    .catch(() => undefined);
-}
-
-bot.hears([BTN_MAP, BTN_MAP_LEGACY], sendMapLink);
+/** Legacy text button from old keyboards — nudge users to the webApp button. */
+bot.hears(BTN_MAP_LEGACY, async (ctx) => {
+  await ctx.reply(
+    'Карта теперь открывается кнопкой «🗺 Открыть карту» внизу (Mini App).',
+    withPersistentKeyboard({ link_preview_options: { is_disabled: true } })
+  );
+});
 
 bot.command('report', async (ctx) => {
   await ctx.reply(
@@ -195,6 +186,30 @@ async function withRetry<T>(
   throw new Error(`${label}: retries exhausted`);
 }
 
+async function setupMenuButton(): Promise<void> {
+  try {
+    await bot.api.setChatMenuButton({
+      menu_button: {
+        type: 'web_app',
+        text: 'Открыть карту',
+        web_app: { url: WEB_APP_LINK },
+      },
+    });
+    console.log(`Menu button → web_app (${WEB_APP_LINK})`);
+  } catch (err) {
+    console.warn(
+      'setChatMenuButton(web_app) failed — try BotFather Menu Button or skip domain on trycloudflare:',
+      err
+    );
+    try {
+      await bot.api.setChatMenuButton({ menu_button: { type: 'default' } });
+      console.log('Menu button → default (use reply keyboard «Открыть карту»)');
+    } catch (fallbackErr) {
+      console.warn('setChatMenuButton(default) failed:', fallbackErr);
+    }
+  }
+}
+
 async function main() {
   const apiUrl = process.env.API_URL || 'http://localhost:3001/api';
   console.log(`API_URL=${apiUrl}`);
@@ -203,13 +218,7 @@ async function main() {
   const me = await withRetry('getMe', () => bot.api.getMe());
   console.log(`Fuel Map Telegram bot @${me.username} (id ${me.id}) starting…`);
 
-  // Reset BotFather menu button — old web_app URL (IP:8090) often sticks there.
-  try {
-    await bot.api.setChatMenuButton({ menu_button: { type: 'default' } });
-    console.log('Menu button → default (use inline «Открыть карту» under bot messages)');
-  } catch (err) {
-    console.warn('setChatMenuButton failed:', err);
-  }
+  await setupMenuButton();
 
   await withRetry('bot.start', () =>
     bot.start({

@@ -1,6 +1,7 @@
 #!/bin/bash
-# fuel-map — fix Telegram bot map URL (Keyboard.url, no BotFather domain).
+# fuel-map — fix WEB_APP_URL + rebuild Mini App bot (Keyboard.webApp, Menu Button).
 # VNC Timeweb: cd /opt/fuel-map && bash deploy/vnc-fix-bot-url.sh
+# Setup: deploy/BOT-MINIAPP-SETUP.md
 set -euo pipefail
 
 TUNNEL_URL="${TUNNEL_URL:-https://announced-cap-romantic-committee.trycloudflare.com}"
@@ -36,5 +37,7 @@ sleep 5
 ${COMPOSE} --profile telegram logs telegram-bot --tail=40 2>/dev/null | grep -E 'API_URL=|WEB_APP_URL=|polling|getMe failed|Menu button' || true
 
 echo ""
-echo "ГОТОВО. В Telegram: удалите чат с ботом → /start → «Открыть карту»."
-echo "Бот в host network — тест wget из контейнера не нужен. Menu Button: @BotFather → ${TUNNEL_URL}"
+echo "ГОТОВО. В Telegram: удалите чат с ботом → /start → «🗺 Открыть карту» (Mini App)."
+echo "Menu Button: @BotFather → Bot Settings → Menu Button → ${TUNNEL_URL}"
+echo "Канал без @бота: node scripts/edit-pinned-launch-post.mjs"
+echo "Подробно: deploy/BOT-MINIAPP-SETUP.md"
