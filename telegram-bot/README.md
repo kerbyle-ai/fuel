@@ -19,8 +19,10 @@ TELEGRAM_BOT_TOKEN=123456:ABC-DEF...
 # URL backend API (по умолчанию http://localhost:3001/api)
 API_URL=http://localhost:3001/api
 
-# URL веб-PWA для команды /report
-WEB_APP_URL=https://your-domain.ru
+# URL веб-PWA для команды /report и кнопок «Открыть карту»
+# Без домена (Timeweb, HTTP снаружи заблокирован): Cloudflare Quick Tunnel
+WEB_APP_URL=https://xxxx.trycloudflare.com
+# После покупки домена: WEB_APP_URL=https://your-domain.ru
 
 # Опционально: ID канала для уведомлений о новых отчётах
 TELEGRAM_NOTIFY_CHANNEL_ID=-1001234567890

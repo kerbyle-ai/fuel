@@ -20,7 +20,7 @@
 
 | Ключ | Значение |
 |------|----------|
-| `WEB_APP_URL` | http://147.45.175.194:8090 (временно; после деплоя — домен) |
+| `WEB_APP_URL` | `https://YOUR-TUNNEL.trycloudflare.com` (временно, без домена; URL меняется при перезапуске туннеля — см. `deploy/vnc-free-public-url.sh`) |
 | `TELEGRAM_BOT` | @Toplivo_map_bot (https://t.me/Toplivo_map_bot, токен в `.env`) |
 | `TELEGRAM_CHANNEL` | @toplivo99 (https://t.me/toplivo99, закреплён `telegram/channel-posts/00-launch-official.md`) |
 | Boosty | https://boosty.to/toplivo |

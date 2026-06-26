@@ -32,14 +32,14 @@ cp .env.example .env
 ```env
 TELEGRAM_BOT_TOKEN=1234567890:AAHxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 API_URL=http://localhost:3001/api
-WEB_APP_URL=http://147.45.175.194:8090
+WEB_APP_URL=https://xxxx.trycloudflare.com
 ```
 
 | Переменная | Описание |
 |------------|----------|
 | `TELEGRAM_BOT_TOKEN` | Токен от BotFather |
 | `API_URL` | Backend API. Локально: `http://localhost:3001/api`. В Docker: `http://api:3001/api` |
-| `WEB_APP_URL` | Публичный URL веб-карты (PWA). После привязки домена замените на `https://ваш-домен.ru` |
+| `WEB_APP_URL` | Публичный HTTPS URL веб-карты (PWA). **Без домена:** Cloudflare Quick Tunnel — `deploy/vnc-free-public-url.sh` на VPS → `https://xxxx.trycloudflare.com` (URL меняется при перезапуске туннеля). **С доменом:** `https://ваш-домен.ru` |
 | `TELEGRAM_CHANNEL_URL` | *(опционально)* Ссылка на канал для кнопки в `/start`. По умолчанию `https://t.me/toplivo99` |
 | `TELEGRAM_NOTIFY_CHANNEL_ID` | *(опционально)* ID канала для уведомлений о новых отчётах, напр. `-1001234567890` |
 
@@ -212,13 +212,32 @@ sudo systemctl status fuel-map-bot
 
 ## 7. Production: `WEB_APP_URL`
 
-Перед публичным запуском канала установите в `.env` актуальный адрес карты:
+Перед публичным запуском канала установите в `.env` актуальный адрес карты.
+
+### Без домена (Timeweb, inbound HTTP заблокирован)
+
+На VNC VPS выполните скрипт из репозитория:
+
+```bash
+cd /opt/fuel-map && git pull origin main
+bash deploy/vnc-free-public-url.sh
+```
+
+Скрипт поднимает Cloudflare Quick Tunnel → `https://xxxx.trycloudflare.com`, прописывает `WEB_APP_URL` и `ALLOWED_ORIGINS`, перезапускает API и бота.
+
+> **Важно:** URL `trycloudflare.com` **меняется** при `systemctl restart cloudflared-quick`. После перезапуска скопируйте новый URL из `journalctl -u cloudflared-quick` и обновите `.env`.
+
+Ручной one-liner (тест, без автозапуска):
+
+```bash
+cloudflared tunnel --url http://127.0.0.1:8090
+```
+
+Альтернатива: `ngrok http 8090` (нужен аккаунт ngrok.com).
+
+### С доменом
 
 ```env
-# временно — IP и порт
-WEB_APP_URL=http://147.45.175.194:8090
-
-# после привязки домена и SSL
 WEB_APP_URL=https://fuelmap.ru
 ```
 
