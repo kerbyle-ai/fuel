@@ -78,8 +78,8 @@ grep -q '^WEB_APP_URL=' .env \
   && sed -i "s|^WEB_APP_URL=.*|WEB_APP_URL=${TUNNEL_URL}|" .env \
   || echo "WEB_APP_URL=${TUNNEL_URL}" >> .env
 
-echo "=== 6. Перезапуск API (CORS) и Telegram-бота ==="
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d api
+echo "=== 6. Перезапуск API + nginx (CORS) и Telegram-бота ==="
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d api nginx
 if systemctl is-active fuel-map-bot >/dev/null 2>&1; then
   systemctl restart fuel-map-bot
 fi

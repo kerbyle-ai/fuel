@@ -27,12 +27,18 @@ else
   echo "OK: host reaches api.telegram.org"
 fi
 
-echo "=== 4. Rebuild api + telegram-bot ==="
+echo "=== 4. ALLOWED_ORIGINS (CORS for tunnel) ==="
+grep -q '^ALLOWED_ORIGINS=' .env \
+  && sed -i "s|^ALLOWED_ORIGINS=.*|ALLOWED_ORIGINS=${TUNNEL_URL},http://127.0.0.1:8090|" .env \
+  || echo "ALLOWED_ORIGINS=${TUNNEL_URL},http://127.0.0.1:8090" >> .env
+grep '^ALLOWED_ORIGINS=' .env
+
+echo "=== 5. Rebuild api + nginx + telegram-bot ==="
 COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
-${COMPOSE} up -d api
+${COMPOSE} up -d api nginx
 ${COMPOSE} --profile telegram up -d --build telegram-bot --force-recreate
 
-echo "=== 5. Bot logs (need: Bot is polling for updates) ==="
+echo "=== 6. Bot logs (need: Bot is polling for updates) ==="
 sleep 5
 ${COMPOSE} --profile telegram logs telegram-bot --tail=40 2>/dev/null | grep -E 'API_URL=|WEB_APP_URL=|polling|getMe failed|Menu button' || true
 
