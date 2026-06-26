@@ -30,7 +30,7 @@ function persistentKeyboard(): Keyboard {
     .text(BTN_NEARBY)
     .text(BTN_RESTART)
     .row()
-    .url(BTN_MAP, WEB_APP_LINK)
+    .text(BTN_MAP)
     .resized()
     .persistent();
 }
@@ -43,7 +43,7 @@ function nearbyPromptKeyboard(): Keyboard {
     .text(BTN_NEARBY)
     .text(BTN_RESTART)
     .row()
-    .url(BTN_MAP, WEB_APP_LINK)
+    .text(BTN_MAP)
     .resized()
     .persistent();
 }
@@ -93,6 +93,13 @@ bot.command('help', async (ctx) => {
 
 bot.command('nearby', sendNearbyPrompt);
 bot.hears(BTN_NEARBY, sendNearbyPrompt);
+
+bot.hears(BTN_MAP, async (ctx) => {
+  await ctx.reply(
+    `🗺 [Открыть карту топлива](${WEB_APP_LINK})`,
+    withPersistentKeyboard({ parse_mode: 'Markdown', link_preview_options: { is_disabled: true } })
+  );
+});
 
 bot.command('report', async (ctx) => {
   await ctx.reply(
