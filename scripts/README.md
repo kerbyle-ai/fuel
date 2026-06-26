@@ -114,6 +114,14 @@ npm run import:benzin-price -- --region all
 
 Requires `npx playwright install chromium` once after `npm install`.
 
+**Автоимпорт каждые 2 часа (Windows, локальная БД):**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File install-import-scheduler.ps1
+```
+
+**VPS:** `bash deploy/install-price-import-cron.sh` (Docker + cron, см. `deploy/VNC-GITHUB-DEPLOY.md`).
+
 **Legal note:** [benzin-price.ru](https://www.benzin-price.ru/) prohibits automated parsing without written permission. Use low request rate (`--delay 2000`).
 
 ## Environment

@@ -42,13 +42,10 @@ if [ -f deploy/reports-seed.sql.gz ] && [ "${REPORTS:-0}" -lt 500 ]; then
   echo "Reports after seed: $REPORTS"
 fi
 
-# Optional: refresh prices from web (needs Node + Playwright on host)
+# Optional: refresh prices from web (Docker importer)
 if [ "${RUN_BENZIN_IMPORT:-0}" = "1" ]; then
-  echo "Running benzin-price import on host..."
-  cd scripts && npm ci && npx playwright install chromium
-  DATABASE_URL="postgresql://fuelmap:${POSTGRES_PASSWORD:-fuelmap_secret}@127.0.0.1:5432/fuelmap" \
-    npm run import:benzin-price -- --region all --delay 2000 --no-coords
-  cd "$PROJECT_DIR"
+  echo "Running benzin-price import (Docker)..."
+  bash deploy/run-benzin-import.sh
 fi
 
 for _ in $(seq 1 30); do
@@ -60,3 +57,7 @@ REPORTS=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) F
 STATIONS=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) FROM stations;")
 echo "Done. stations=$STATIONS reports=$REPORTS"
 echo "Open: http://147.45.175.194:8090"
+
+if [ "${INSTALL_PRICE_CRON:-1}" = "1" ]; then
+  bash deploy/install-price-import-cron.sh
+fi

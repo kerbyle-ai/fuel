@@ -70,5 +70,18 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  # One-shot: docker compose --profile importer run --rm price-importer
+  price-importer:
+    profiles: ["importer"]
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile.importer
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-fuelmap}:${POSTGRES_PASSWORD:-fuelmap_secret}@db:5432/${POSTGRES_DB:-fuelmap}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
 volumes:
   pgdata:

@@ -145,6 +145,20 @@ bash deploy/vnc-github-update.sh
 
 Repo: `https://github.com/kerbyle-ai/fuel.git`
 
+### Автообновление цен каждые 2 часа
+
+После `vnc-github-update.sh` cron ставится автоматически. Вручную:
+
+```bash
+cd /opt/fuel-map
+bash deploy/install-price-import-cron.sh
+# проверка
+bash deploy/run-benzin-import.sh
+tail -f /var/log/fuel-map-import.log
+```
+
+Расписание: `0 */2 * * *` (в 00:00, 02:00, 04:00 …). Импорт идёт в Docker (`price-importer` + Playwright).
+
 ## 5. Updates (code only)
 
 ```bash
