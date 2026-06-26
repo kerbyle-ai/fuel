@@ -7,6 +7,8 @@ COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
 PROJECT_DIR="${PROJECT_DIR:-/opt/fuel-map}"
 BACKUP="${BACKUP:-$PROJECT_DIR/fuelmap-backup.sql.gz}"
 CATBOX_TGZ="${CATBOX_TGZ:-https://files.catbox.moe/2yny7r.tgz}"
+EXPECTED_STATIONS="${EXPECTED_STATIONS:-25560}"
+EXPECTED_MIN="${EXPECTED_MIN:-20000}"
 
 cd "$PROJECT_DIR"
 
@@ -38,6 +40,41 @@ ensure_backup() {
   exit 1
 }
 
+stop_app_containers() {
+  echo "Stopping API..."
+  $COMPOSE stop api 2>/dev/null || true
+
+  if $COMPOSE ps --status running 2>/dev/null | grep -q telegram-bot; then
+    echo "Stopping telegram-bot..."
+    $COMPOSE --profile telegram stop telegram-bot 2>/dev/null || true
+  fi
+}
+
+start_app_containers() {
+  echo "Starting API..."
+  $COMPOSE start api 2>/dev/null || $COMPOSE up -d api
+
+  if $COMPOSE ps -a 2>/dev/null | grep -q telegram-bot; then
+    echo "Starting telegram-bot..."
+    $COMPOSE --profile telegram start telegram-bot 2>/dev/null || true
+  fi
+}
+
+wipe_public_schema() {
+  local user="${POSTGRES_USER:-fuelmap}"
+  echo "Wiping public schema (drops migration seed + old tables)..."
+  $COMPOSE exec -T db psql -U "$user" -d "${POSTGRES_DB:-fuelmap}" -v ON_ERROR_STOP=1 <<SQL
+DROP SCHEMA IF EXISTS public CASCADE;
+DROP SCHEMA IF EXISTS topology CASCADE;
+DROP SCHEMA IF EXISTS tiger CASCADE;
+DROP SCHEMA IF EXISTS tiger_data CASCADE;
+DROP EXTENSION IF EXISTS postgis CASCADE;
+CREATE SCHEMA public;
+GRANT ALL ON SCHEMA public TO ${user};
+GRANT ALL ON SCHEMA public TO public;
+SQL
+}
+
 echo "=== fuel-map DB restore $(date -Is) ==="
 
 if [[ -f .env ]]; then
@@ -57,15 +94,25 @@ BEFORE="$(count_stations)"
 echo "Stations before restore: $BEFORE"
 
 ensure_backup
+stop_app_containers
+wipe_public_schema
 
-echo "Restoring (this may take 1–3 minutes)..."
+echo "Restoring from backup (this may take 1–3 minutes)..."
 gunzip -c "$BACKUP" | $COMPOSE exec -T db psql -U "${POSTGRES_USER:-fuelmap}" -d "${POSTGRES_DB:-fuelmap}" -v ON_ERROR_STOP=1
 
-AFTER="$(count_stations)"
-echo "Stations after restore: $AFTER"
+start_app_containers
 
-if [[ "${AFTER:-0}" -lt 1000 ]]; then
-  echo "WARN: expected ~25,000 stations; restore may have failed."
+echo "Waiting for API..."
+for _ in $(seq 1 30); do
+  curl -sf --max-time 3 "http://127.0.0.1:8090/api/health" >/dev/null && break
+  sleep 2
+done
+
+AFTER="$(count_stations)"
+echo "Stations after restore: $AFTER (expected ~${EXPECTED_STATIONS})"
+
+if [[ "${AFTER:-0}" -lt "$EXPECTED_MIN" ]]; then
+  echo "ERROR: expected ~${EXPECTED_STATIONS} stations (min ${EXPECTED_MIN}); restore may have failed."
   exit 1
 fi
 
