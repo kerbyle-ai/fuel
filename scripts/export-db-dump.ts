@@ -39,7 +39,7 @@ async function main() {
     const comment = r.comment === null ? 'NULL' : `'${r.comment.replace(/'/g, "''")}'`;
     const fp = r.user_fingerprint === null ? 'NULL' : `'${r.user_fingerprint.replace(/'/g, "''")}'`;
     lines.push(
-      `INSERT INTO reports (station_id, fuel_type_id, status, price, queue_status, limit_liters, comment, user_fingerprint, weight, created_at) VALUES (${r.station_id}, ${r.fuel_type_id}, '${r.status}', ${price}, '${r.queue_status}', ${limit}, ${comment}, ${fp}, ${r.weight}, '${r.created_at.toISOString()}');`
+      `INSERT INTO reports (station_id, fuel_type_id, status, price, queue_status, limit_liters, comment, user_fingerprint, weight, created_at) VALUES (${r.station_id}, ${r.fuel_type_id}, '${r.status}', ${price}, '${r.queue_status}', ${limit}, ${comment}, ${fp}, ${r.weight}, NOW());`
     );
   }
 

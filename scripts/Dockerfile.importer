@@ -1,5 +1,6 @@
 # One-shot price importer (Playwright + benzin-price.ru parser)
-FROM mcr.microsoft.com/playwright:v1.50.1-noble
+# Must match playwright version in scripts/package-lock.json (browser + npm package)
+FROM mcr.microsoft.com/playwright:v1.61.1-noble
 
 WORKDIR /app
 

@@ -28,19 +28,23 @@ done
 
 STATIONS=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) FROM stations;" 2>/dev/null || echo 0)
 REPORTS=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) FROM reports;" 2>/dev/null || echo 0)
+PRICED=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) FROM reports WHERE price IS NOT NULL AND created_at > NOW() - INTERVAL '7 days';" 2>/dev/null || echo 0)
 LINKS=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) FROM benzin_station_links;" 2>/dev/null || echo 0)
-echo "Before seed: stations=$STATIONS reports=$REPORTS benzin_links=$LINKS"
+echo "Before seed: stations=$STATIONS reports=$REPORTS priced_7d=$PRICED benzin_links=$LINKS"
 
 if [ "${STATIONS:-0}" -lt 1000 ] && [ -f deploy/fuelmap-backup.sql.gz ]; then
   echo "Restoring full DB from deploy/fuelmap-backup.sql.gz ..."
   bash deploy/vnc-restore-db.sh
 fi
 
-if [ -f deploy/reports-seed.sql.gz ] && [ "${REPORTS:-0}" -lt 500 ]; then
-  echo "Applying deploy/reports-seed.sql.gz ..."
+if [ -f deploy/reports-seed.sql.gz ] && [ "${PRICED:-0}" -lt 100 ]; then
+  echo "Applying deploy/reports-seed.sql.gz (priced reports in last 7d: ${PRICED:-0}) ..."
   gunzip -c deploy/reports-seed.sql.gz | $COMPOSE exec -T db psql -U fuelmap -d fuelmap -v ON_ERROR_STOP=1
+  $COMPOSE exec -T db psql -U fuelmap -d fuelmap -v ON_ERROR_STOP=1 -c \
+    "UPDATE reports SET created_at = NOW() WHERE price IS NOT NULL;"
   REPORTS=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) FROM reports;")
-  echo "Reports after seed: $REPORTS"
+  PRICED=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) FROM reports WHERE price IS NOT NULL AND created_at > NOW() - INTERVAL '7 days';")
+  echo "Reports after seed: total=$REPORTS priced_7d=$PRICED"
 fi
 
 # Benzin-price import (Docker Playwright → reports in DB → map)
@@ -59,9 +63,10 @@ for _ in $(seq 1 30); do
 done
 curl -sS http://127.0.0.1:8090/api/health || true
 REPORTS=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) FROM reports;")
+PRICED=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) FROM reports WHERE price IS NOT NULL AND created_at > NOW() - INTERVAL '7 days';")
 STATIONS=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) FROM stations;")
 LINKS=$($COMPOSE exec -T db psql -U fuelmap -d fuelmap -tAc "SELECT COUNT(*) FROM benzin_station_links;" 2>/dev/null || echo 0)
-echo "Done. stations=$STATIONS reports=$REPORTS benzin_links=$LINKS"
+echo "Done. stations=$STATIONS reports=$REPORTS priced_7d=$PRICED benzin_links=$LINKS"
 echo "Open: http://147.45.175.194:8090"
 
 if [ "${INSTALL_PRICE_CRON:-1}" = "1" ]; then

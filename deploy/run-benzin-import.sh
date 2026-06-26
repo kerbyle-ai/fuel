@@ -22,6 +22,7 @@ mkdir -p "$(dirname "$LOCK_FILE")" "$LOG_DIR"
 
 exec flock -n "$LOCK_FILE" bash -c "
   echo \"=== benzin import \$(date -Is) ===\"
+  $COMPOSE --profile importer build price-importer
   $COMPOSE --profile importer run --rm --no-TTY price-importer
   echo \"=== done \$(date -Is) ===\"
 "

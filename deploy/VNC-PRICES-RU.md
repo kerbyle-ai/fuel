@@ -10,7 +10,7 @@
 | `docker compose --profile importer run price-importer` | одноразовый импорт в контейнере |
 | `deploy/run-benzin-import.sh` | обёртка для VPS (flock + compose) |
 | cron `0 */2 * * *` | автообновление каждые 2 часа |
-| `deploy/reports-seed.sql.gz` | начальный дамп ~7k отчётов (если в БД < 500) |
+| `deploy/reports-seed.sql.gz` | начальный дамп ~7k отчётов (если priced_7d < 100) |
 | `benzin_station_links` | привязка benzin_id → station_id (миграция 003) |
 
 ---
@@ -54,9 +54,9 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml \
 
 ---
 
-## 3. Начальные данные (если отчётов мало)
+## 3. Начальные данные (если цен в API нет)
 
-Если в БД < 500 отчётов — seed подставится автоматически. Принудительно:
+Если отчётов с ценой за 7 дней < 100 — seed подставится автоматически. Принудительно:
 
 ```bash
 cd /opt/fuel-map
@@ -77,9 +77,9 @@ $COMPOSE exec -T db psql -U fuelmap -d fuelmap -c "SELECT COUNT(*) AS stations F
 $COMPOSE exec -T db psql -U fuelmap -d fuelmap -c "SELECT COUNT(*) AS reports FROM reports;"
 $COMPOSE exec -T db psql -U fuelmap -d fuelmap -c "SELECT COUNT(*) AS benzin_links FROM benzin_station_links;"
 
-# Отчёты с ценой за последние сутки
+# Отчёты с ценой за последние 7 дней (API читает только их)
 $COMPOSE exec -T db psql -U fuelmap -d fuelmap -c \
-  "SELECT COUNT(*) FROM reports WHERE price IS NOT NULL AND created_at > NOW() - INTERVAL '24 hours';"
+  "SELECT COUNT(*) AS priced_7d FROM reports WHERE price IS NOT NULL AND created_at > NOW() - INTERVAL '7 days';"
 
 # API
 curl -s http://127.0.0.1:8090/api/health
@@ -88,7 +88,7 @@ curl -s http://127.0.0.1:8090/api/health
 curl -s "http://127.0.0.1:8090/api/stations?bbox=37.3,55.5,37.9,55.9&fuel_types=ai95" | head -c 2000
 ```
 
-**Ожидание:** stations ~25 560, reports 7 000+, benzin_links растёт после импорта.
+**Ожидание:** stations ~25 560, priced_7d 7 000+, benzin_links растёт после импорта.
 
 ---
 
