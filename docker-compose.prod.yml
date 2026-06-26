@@ -3,7 +3,8 @@
 #
 # Безопасность:
 # - PostgreSQL НЕ проброшен на хост (только внутри docker network)
-# - API на 127.0.0.1:3001 (localhost; nginx — публичный фронт)
+# - API на 127.0.0.1:3002→3001 (localhost; nginx — публичный фронт через docker network)
+#   Host bind 3002 avoids conflict with zombie processes on :3001
 # - telegram-bot: network_mode host → исходящий HTTPS как с хоста (обход Docker NAT ETIMEDOUT)
 # - nginx слушает 0.0.0.0:80, 8090, 8888 — публичный доступ по IP
 
@@ -13,7 +14,7 @@ services:
 
   api:
     ports:
-      - "127.0.0.1:3001:3001"
+      - "127.0.0.1:3002:3001"
     environment:
       NODE_ENV: production
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://your-domain.ru}
@@ -27,4 +28,4 @@ services:
   telegram-bot:
     network_mode: host
     environment:
-      API_URL: http://127.0.0.1:3001/api
+      API_URL: http://127.0.0.1:3002/api
