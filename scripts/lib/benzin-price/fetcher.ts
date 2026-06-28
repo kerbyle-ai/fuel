@@ -65,8 +65,12 @@ export class BenzinPriceFetcher {
 
     const { cookies, source } = loadBenzinCookies(this.cookiesFile);
     if (cookies.length > 0) {
-      await this.context.addCookies(cookies);
-      console.log(`[benzin] loaded ${cookies.length} cookies from ${source}`);
+      try {
+        await this.context.addCookies(cookies);
+        console.log(`[benzin] loaded ${cookies.length} cookies from ${source}`);
+      } catch (err) {
+        console.warn(`[benzin] cookie load failed (${source}), continuing without cookies:`, err);
+      }
     } else {
       console.warn('[benzin] no cookie file found — site may block datacenter IPs without session cookies');
     }

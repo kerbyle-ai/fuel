@@ -11,31 +11,34 @@ const DEFAULT_COOKIE_PATHS = [
 /** Parse Netscape cookie jar for Playwright context.addCookies(). */
 export function parseNetscapeCookieFile(content: string, baseUrl = 'https://www.benzin-price.ru'): Cookie[] {
   const cookies: Cookie[] = [];
-  const now = Math.floor(Date.now() / 1000);
 
   for (const line of content.split('\n')) {
     if (line.startsWith('#') || !line.trim()) continue;
     const parts = line.split('\t');
     if (parts.length < 7) continue;
 
-    const [domain, , path, secureFlag, expiresRaw, name, value] = parts;
+    const [domain, includeSubdomains, path, secureFlag, expiresRaw, name, value] = parts;
     if (!name || value === undefined) continue;
 
     const expiresNum = parseInt(expiresRaw, 10);
+    const hostOnly = includeSubdomains?.toUpperCase() === 'FALSE';
+    let cookieDomain = domain.trim();
+    if (!hostOnly && !cookieDomain.startsWith('.')) {
+      cookieDomain = `.${cookieDomain.replace(/^www\./, '')}`;
+    }
+
     const cookie: Cookie = {
       name,
       value,
-      domain: domain.startsWith('.') ? domain : `.${domain.replace(/^www\./, '')}`,
+      domain: cookieDomain,
       path: path || '/',
       httpOnly: false,
-      secure: true,
+      secure: secureFlag?.toUpperCase() === 'TRUE',
       sameSite: 'Lax',
     };
 
     if (Number.isFinite(expiresNum) && expiresNum > 0) {
       cookie.expires = expiresNum;
-    } else {
-      cookie.expires = now + 86_400;
     }
 
     cookies.push(cookie);
