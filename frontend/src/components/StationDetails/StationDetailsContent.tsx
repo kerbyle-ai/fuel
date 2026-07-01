@@ -20,8 +20,6 @@ export function StationDetailsContent({
   showClose = true,
   reportSectionRef,
 }: StationDetailsContentProps) {
-  const pricedFuels = detail.fuels.filter((f) => f.price != null);
-
   return (
     <div className="station-details">
       <div className="station-details__header">
@@ -39,20 +37,6 @@ export function StationDetailsContent({
           </button>
         )}
       </div>
-
-      {pricedFuels.length > 0 && (
-        <div className="station-prices-banner">
-          <div className="station-prices-banner__title">Цены на топливо</div>
-          <div className="station-prices-banner__grid">
-            {pricedFuels.map((f) => (
-              <div key={f.fuel_code} className="station-prices-banner__item">
-                <span>{f.fuel_name}</span>
-                <strong>{formatPrice(f.price!)}</strong>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {detail.fuels.length > 0 && (
         <div className="fuel-status-grid">
@@ -78,7 +62,7 @@ export function StationDetailsContent({
       )}
 
       <div ref={reportSectionRef}>
-        <QuickReport stationId={detail.id} onSuccess={onReportSuccess} />
+        <QuickReport stationId={detail.id} fuels={detail.fuels} onSuccess={onReportSuccess} />
       </div>
 
       <section className="station-details__history">

@@ -522,8 +522,117 @@ textarea {
 }
 
 .quick-report__title {
-  margin: 0 0 0.75rem;
+  margin: 0;
   font-size: 0.95rem;
+}
+
+.quick-report__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.quick-report__bulk-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-text {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary, #2563eb);
+  cursor: pointer;
+}
+
+.quick-report__hint {
+  margin: 0 0 0.65rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.quick-report__selected {
+  margin: 0 0 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--green-800, #166534);
+}
+
+.fuel-pick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+}
+
+.fuel-pick-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.55rem 0.6rem;
+  min-height: 3.25rem;
+  border: 2px solid var(--gray-200, #e5e7eb);
+  border-radius: var(--radius);
+  background: var(--surface, #fff);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.fuel-pick-card:hover {
+  border-color: #86efac;
+}
+
+.fuel-pick-card--selected {
+  border-color: #22c55e;
+  background: #f0fdf4;
+  box-shadow: 0 0 0 1px #22c55e;
+}
+
+.fuel-pick-card__name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.fuel-pick-card__price {
+  font-size: 1rem;
+  color: var(--green-800, #166534);
+}
+
+.fuel-pick-card__empty {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.fuel-pick-card__check {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #16a34a;
+}
+
+.quick-report__more {
+  margin-top: 0.75rem;
+  font-size: 0.82rem;
+}
+
+.quick-report__more summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.quick-report__more[open] summary {
+  margin-bottom: 0.5rem;
 }
 
 .quick-report__actions {
