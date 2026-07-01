@@ -63,13 +63,11 @@ export default function App() {
 
 
   const toggleFuel = useCallback((code: FuelCode) => {
-
-    setSelectedFuels((prev) =>
-
-      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
-
-    );
-
+    setSelectedFuels((prev) => {
+      const next = prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code];
+      setHideWithoutFuel(next.length > 0);
+      return next;
+    });
   }, []);
 
 
@@ -230,13 +228,12 @@ export default function App() {
           <div className="tg-filters-bar">
 
             <button
-
               type="button"
-
               className={`tg-filter-chip${selectedFuels.length === 0 ? ' tg-filter-chip--active' : ''}`}
-
-              onClick={() => setSelectedFuels([])}
-
+              onClick={() => {
+                setSelectedFuels([]);
+                setHideWithoutFuel(false);
+              }}
             >
 
               Все

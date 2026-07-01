@@ -39,6 +39,9 @@ export function FuelFilters({
           onChange={(e) => onHideWithoutFuelChange(e.target.checked)}
         />
         <span>Скрывать АЗС без выбранного топлива</span>
+        {selected.length > 0 && !hideWithoutFuel && (
+          <span className="fuel-filters__hint"> — включите, чтобы видеть только АЗС с ценами</span>
+        )}
       </label>
     </div>
   );

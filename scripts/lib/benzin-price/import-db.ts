@@ -152,12 +152,10 @@ export async function matchStationByProximity(
   const { rows: candidates } = await query<DbStation>(
     `SELECT id, name, brand, lat, lng, osm_id
      FROM stations
-     WHERE region ILIKE $2
-        OR region = $4
-        OR name ILIKE $3
-        OR brand ILIKE $3
+     WHERE (region ILIKE $2 OR region = $4)
+       AND (name ILIKE $3 OR brand ILIKE $3 OR name ILIKE $5)
      LIMIT 300`,
-    [regionName, `%${regionName}%`, `%${namePrefix}%`, regionCode]
+    [regionName, `%${regionName}%`, `%${namePrefix}%`, regionCode, `%${norm.slice(0, 20)}%`]
   );
 
   let best: { id: number; score: number } | null = null;
