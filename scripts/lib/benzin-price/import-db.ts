@@ -111,19 +111,35 @@ export async function matchStationByProximity(
   const brandPattern = brand ? `%${brand}%` : null;
 
   if (detail?.lat != null && detail?.lng != null) {
-    const { rows } = await query<{ id: number; dist: number }>(
-      `SELECT id,
+    const sqlWithBrand = `SELECT id,
               ST_Distance(location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) AS dist
        FROM stations
        WHERE ST_DWithin(location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography, $3)
        ORDER BY
-         CASE WHEN $4::text IS NOT NULL AND (
-           brand ILIKE $4 OR name ILIKE $4
-         ) THEN 0 ELSE 1 END,
+         CASE WHEN brand ILIKE $4 OR name ILIKE $5 THEN 0 ELSE 1 END,
          dist ASC
-       LIMIT 1`,
-      [detail.lng, detail.lat, radiusMeters, brandPattern]
-    );
+       LIMIT 1`;
+
+    const sqlNoBrand = `SELECT id,
+              ST_Distance(location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) AS dist
+       FROM stations
+       WHERE ST_DWithin(location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography, $3)
+       ORDER BY dist ASC
+       LIMIT 1`;
+
+    const { rows } = brandPattern
+      ? await query<{ id: number; dist: number }>(sqlWithBrand, [
+          detail.lng,
+          detail.lat,
+          radiusMeters,
+          brandPattern,
+          brandPattern,
+        ])
+      : await query<{ id: number; dist: number }>(sqlNoBrand, [
+          detail.lng,
+          detail.lat,
+          radiusMeters,
+        ]);
     if (rows[0]) return rows[0].id;
   }
 
